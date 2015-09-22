@@ -168,14 +168,14 @@ int rsa_key_load_public(const char *filename, struct rsa_key *key)
  * c = m^e mod n */
 void rsa_encrypt(mpz_t c, const mpz_t m, const struct rsa_key *key)
 {
-	mpz_powm(c, m, key->e, key->n)
+	mpz_powm(c, m, key->e, key->n);
 }
 
 /* Compute the decryption of c under the given key and store the result in m.
  * m = c^d mod n */
 void rsa_decrypt(mpz_t m, const mpz_t c, const struct rsa_key *key)
 {
-	mpz_powm(m, c, key->d, key->n)
+	mpz_powm(m, c, key->d, key->n);
 }
 
 /* Generate a random probable prime. numbits must be a multiple of 8 (i.e., a

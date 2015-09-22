@@ -57,14 +57,14 @@ static char *decode(const mpz_t x, size_t *len)
  * was an error; zero otherwise. */
 static int encrypt_mode(const char *key_filename, const char *message)
 {
-	rsa_key key;
+	struct rsa_key *key;
 	mpz_t m, c;
 	mpz_init(m);
 	mpz_init(c);
 	rsa_key_init(key);
 	rsa_key_load_public(key_filename, key);
 	encode(m, message);
-	rsa_encrypt(c, m, *key);
+	rsa_encrypt(c, m, key);
 	gmp_printf("%Zd\n", c);
 	rsa_key_clear(key);
 	return 1;
@@ -77,7 +77,7 @@ static int encrypt_mode(const char *key_filename, const char *message)
  * was an error; zero otherwise. */
 static int decrypt_mode(const char *key_filename, const char *c_str)
 {
-	rsa_key key;
+	struct rsa_key *key;
 	mpz_t m, c;
 	mpz_init(m);
 	mpz_init(c);
@@ -85,8 +85,10 @@ static int decrypt_mode(const char *key_filename, const char *c_str)
 
 	rsa_key_init(key);
 	rsa_key_load_public(key_filename, key);
-	rsa_decrypt(m, c_str, *key);
-	m_str = atoi(m);
+	//TODO: Argument two needs to be of type mpz no const char
+	rsa_decrypt(m, c_str, key);
+	// TODO: Need to pass in a constant char to atoi . Is there a mpz function to convert to integer?
+	unsigned int m_str = atoi(m);
 	gmp_printf("%Zd\n", m);
 	rsa_key_clear(key);
 	return 1;

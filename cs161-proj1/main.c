@@ -57,7 +57,7 @@ static char *decode(const mpz_t x, size_t *len)
  * was an error; zero otherwise. */
 static int encrypt_mode(const char *key_filename, const char *message)
 {
-	struct rsa_key *key;
+	struct rsa_key *key = malloc(sizeof(*key));
 	mpz_t m, c;
 	mpz_init(m);
 	mpz_init(c);
@@ -77,7 +77,7 @@ static int encrypt_mode(const char *key_filename, const char *message)
  * was an error; zero otherwise. */
 static int decrypt_mode(const char *key_filename, const char *c_str)
 {
-	struct rsa_key *key;
+	struct rsa_key *key = malloc(sizeof(*key));
 	mpz_t m, c;
 	mpz_init(m);
 
@@ -107,21 +107,7 @@ static int genkey_mode(const char *numbits_str)
 
 int main(int argc, char *argv[])
 {
-	mpz_t a, b, c; 
- 
-	mpz_init(a); 
-	mpz_init(b); 
-	mpz_init(c); 
-	 
-	mpz_set_str(a, "112233445566778899", 10); 
-	mpz_set_str(b, "998877665544332211", 10); 
-	/* c = a * b */ 
-	mpz_mul(c, a, b); 
-	gmp_printf("%Zd = %Zd * %Zd\n", c, a, b); 
-	 
-	mpz_clear(a); 
-	mpz_clear(b); 
-	mpz_clear(c);
+
 	const char *command;
 
 	if (argc < 2) {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include <math.h>
 #include <gmp.h>
 #include "rsa.h"
 
@@ -183,8 +184,7 @@ void rsa_decrypt(mpz_t m, const mpz_t c, const struct rsa_key *key)
  * interval [numbits - 0.5, numbits). Calls abort if any error occurs. */
 static void generate_prime(mpz_t p, unsigned int numbits)
 {
-	printf("hefbwub\n");
-	char *random_arr = malloc(numbits/8);
+	int random_arr[numbits/8];
 	FILE *f = fopen("/dev/urandom", "r");
 
 	if (f == NULL){
@@ -193,23 +193,19 @@ static void generate_prime(mpz_t p, unsigned int numbits)
 	}
 
 	while (1){
-		size_t result = fread(random_arr, 8, numbits/8, f);
+		size_t result = fread(&random_arr, 1, numbits/8, f);
 		if (result != numbits/8){
 			fprintf(stderr, "Fread crashed \n");
 			abort();
 		}
-		*random_arr = *random_arr | 0xc0;
-		printf("%s\n", random_arr);
+		random_arr[0] = random_arr[0]| 0xc0;
 
-		mpz_import(p, numbits/8, 1, 1, 0, 0, random_arr);
-
+		mpz_import(p, numbits/8, 1, 1, 0, 0, (char *) random_arr);
 		int isPrime = mpz_probab_prime_p(p, 25);
-		if (isPrime != 0){
+		if ((isPrime != 0 )){
 			break;
 		}
 	}
-	gmp_printf("%Zd", p);
-	free(random_arr);
   	fclose(f);
 }
 
@@ -217,9 +213,9 @@ static void generate_prime(mpz_t p, unsigned int numbits)
  * interval [numbits - 1, numbits). Calls abort if any error occurs. */
 void rsa_genkey(struct rsa_key *key, unsigned int numbits)
 {
-	mpz_t x;
-	mpz_init(x);
-	generate_prime(x, 256);
+	// mpz_t x;
+	// mpz_init(x);
+	// generate_prime(x, 256);
 	if (numbits % 16 != 0){
 		fprintf(stderr, "numbits was not divisible by 16`\n");
 		abort();

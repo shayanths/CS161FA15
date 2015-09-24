@@ -97,14 +97,19 @@ static int decrypt_mode(const char *key_filename, const char *c_str)
  * was an error; zero otherwise. */
 static int genkey_mode(const char *numbits_str)
 {
-	/* TODO */
-	fprintf(stderr, "genkey not yet implemented\n");
+	
+	struct rsa_key *key = malloc(sizeof(*key));
+	rsa_key_init(key);
+	unsigned int numbits = atoi(numbits_str);
+
+	rsa_genkey(key, numbits);
+	rsa_key_write(stdout, key);
+	free(key);
 	return 1;
 }
 
 int main(int argc, char *argv[])
 {
-
 	const char *command;
 
 	if (argc < 2) {
@@ -147,6 +152,7 @@ int main(int argc, char *argv[])
 		}
 		numbits_str = argv[2];
 
+		
 		return genkey_mode(numbits_str);
 	}
 

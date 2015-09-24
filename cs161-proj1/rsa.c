@@ -183,12 +183,67 @@ void rsa_decrypt(mpz_t m, const mpz_t c, const struct rsa_key *key)
  * interval [numbits - 0.5, numbits). Calls abort if any error occurs. */
 static void generate_prime(mpz_t p, unsigned int numbits)
 {
-	/* TODO */
+	printf("hefbwub\n");
+	char *random_arr = malloc(numbits/8);
+	FILE *f = fopen("/dev/urandom", "r");
+
+	if (f == NULL){
+		fprintf(stderr, "F was Null \n");
+		abort();
+	}
+
+	while (1){
+		size_t result = fread(random_arr, 8, numbits/8, f);
+		if (result != numbits/8){
+			fprintf(stderr, "Fread crashed \n");
+			abort();
+		}
+		*random_arr = *random_arr | 0xc0;
+		printf("%s\n", random_arr);
+
+		mpz_import(p, numbits/8, 1, 1, 0, 0, random_arr);
+
+		int isPrime = mpz_probab_prime_p(p, 25);
+		if (isPrime != 0){
+			break;
+		}
+	}
+	gmp_printf("%Zd", p);
+	free(random_arr);
+  	fclose(f);
 }
 
 /* Generate an RSA key. The base-2 logarithm of the modulus n will lie in the
  * interval [numbits - 1, numbits). Calls abort if any error occurs. */
 void rsa_genkey(struct rsa_key *key, unsigned int numbits)
 {
-	/* TODO */
+	mpz_t x;
+	mpz_init(x);
+	generate_prime(x, 256);
+	if (numbits % 16 != 0){
+		fprintf(stderr, "numbits was not divisible by 16`\n");
+		abort();
+	}
+	mpz_t p, q, p_1, q_1, pq_1;
+	mpz_init(p);
+	mpz_init(q);
+	mpz_init(p_1);
+	mpz_init(q_1);
+	mpz_init(pq_1);
+
+	generate_prime(p, numbits/2);
+	generate_prime(q, numbits/2);
+
+	mpz_sub_ui(p_1, p, 1);
+	mpz_sub_ui(q_1, q, 1);
+
+	mpz_mul(pq_1, p_1, q_1);
+
+	mpz_mul(key->n, p, q);
+
+	char *e = "65537";
+	mpz_set_str(key->e, e, 10);
+
+	mpz_invert(key->d, key->e, pq_1);
+
 }

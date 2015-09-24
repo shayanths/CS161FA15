@@ -62,11 +62,16 @@ static int encrypt_mode(const char *key_filename, const char *message)
 	mpz_init(m);
 	mpz_init(c);
 	rsa_key_init(key);
+
 	rsa_key_load_public(key_filename, key);
 	encode(m, message);
+	if ((mpz_cmp_ui(key->e, 0) == 0) || (mpz_cmp_ui(key->n, 0) == 0)){
+		return 1;
+	}
 	rsa_encrypt(c, m, key);
 	gmp_printf("%Zd\n", c);
 	rsa_key_clear(key);
+	free(key);
 	return 1;
 }
 
@@ -83,9 +88,14 @@ static int decrypt_mode(const char *key_filename, const char *c_str)
 	rsa_key_init(key);
 	rsa_key_load_private(key_filename, key);
 	mpz_init_set_str(c, c_str, 10);
+	if ((mpz_cmp_ui(key->d, 0) == 0) || (mpz_cmp_ui(key->n, 0) == 0)){
+		return 1;
+	}
 	rsa_decrypt(m, c, key);
 	char *m_str = decode(m, NULL);
 	printf("%s", m_str);
+	free(m_str);
+	free(key);
 	rsa_key_clear(key);
 	return 1;
 }

@@ -216,6 +216,7 @@ void rsa_genkey(struct rsa_key *key, unsigned int numbits)
 	// mpz_t x;
 	// mpz_init(x);
 	// generate_prime(x, 256);
+
 	if (numbits % 16 != 0){
 		fprintf(stderr, "numbits was not divisible by 16`\n");
 		abort();
@@ -241,5 +242,4 @@ void rsa_genkey(struct rsa_key *key, unsigned int numbits)
 	mpz_set_str(key->e, e, 10);
 
 	mpz_invert(key->d, key->e, pq_1);
-
 }

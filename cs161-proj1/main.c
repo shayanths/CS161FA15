@@ -62,17 +62,19 @@ static int encrypt_mode(const char *key_filename, const char *message)
 	mpz_init(m);
 	mpz_init(c);
 	rsa_key_init(key);
-
+	
 	rsa_key_load_public(key_filename, key);
-	encode(m, message);
-	if ((mpz_cmp_ui(key->e, 0) == 0) || (mpz_cmp_ui(key->n, 0) == 0)){
+	
+	if ((mpz_cmp_ui(key->e, 0) == 0) || (mpz_cmp_ui(key->n, 0) == 0)) {
 		return 1;
 	}
+
+	encode(m, message);
 	rsa_encrypt(c, m, key);
 	gmp_printf("%Zd\n", c);
 	rsa_key_clear(key);
 	free(key);
-	return 1;
+	return 0;
 }
 
 /* The "decrypt" subcommand. c_str should be the string representation of an
@@ -97,7 +99,7 @@ static int decrypt_mode(const char *key_filename, const char *c_str)
 	free(m_str);
 	free(key);
 	rsa_key_clear(key);
-	return 1;
+	return 0;
 }
 
 /* The "genkey" subcommand. numbits_str should be the string representation of
@@ -115,7 +117,7 @@ static int genkey_mode(const char *numbits_str)
 	rsa_genkey(key, numbits);
 	rsa_key_write(stdout, key);
 	free(key);
-	return 1;
+	return 0;
 }
 
 int main(int argc, char *argv[])

@@ -80,14 +80,11 @@ static int decrypt_mode(const char *key_filename, const char *c_str)
 	struct rsa_key *key = malloc(sizeof(*key));
 	mpz_t m, c;
 	mpz_init(m);
-
 	rsa_key_init(key);
-	rsa_key_load_public(key_filename, key);
-	//TODO: Argument two needs to be of type mpz no const char
+	rsa_key_load_private(key_filename, key);
 	mpz_init_set_str(c, c_str, 10);
 	rsa_decrypt(m, c, key);
-	// TODO: Need to pass in a constant char to atoi . Is there a mpz function to convert to integer?
-	char *m_str = mpz_get_str(NULL, 10, m);
+	char *m_str = decode(m, NULL);
 	printf("%s", m_str);
 	rsa_key_clear(key);
 	return 1;

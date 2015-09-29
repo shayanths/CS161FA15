@@ -1,0 +1,24 @@
+Login: CS161-DS
+       CS161-DQ
+					PJ1 Answers
+
+
+1) What happens when you try to encrypt a very long message (one that is longer than n bits after calling message_encode)? Why does that happen? How do cryptosystems that use RSA encrypt inputs of arbitrary length in practice? 
+
+When you try to encrypt a very long message, the encrypt algorithm returns an encrypted message of a garbage value. However, this encrypted message is actually a garbage filled text, because the encoded message is greater than n bits. After many trials, we derived that the encryption algorithm breaks after passing more than 64 bits. Thus, when trying to decrypt the message that is greater than n bits, we are actually getting a garbage message, which is completely different from the message that was encrypted. This happens because there is a stack/buffer overflow occurring when trying to encrypt a message that is greater than n bits. Cryptosystems that use RSA to encrypt messages of arbitrary length use cryptographic hashes to properly encrypt the message. 
+
+2) Encrypt a message with the test public key. Now encrypt the exact same message again. What do you notice? Is there a way that an attacker could take advantage of this and reduce security? Think about the special case where you only want to encrypt one of two messages: "0" or "1".
+
+When we encrypt the same message twice, the resulting encrypted message is the same. Therefore, encryption is always constant with the same message. This is due to the fact that we are not padding the encryption algorithm. The hacker could take advantage of the lack of padding by using the Chinese Remainder Theorem to derive the values of p and q. RSA algorithm uses CRT to find m^(e) mod n with two operations m^(e) mod p and m^(e) mod q. If the attacker was placed in a scenario where he/she were only allowed to encrypt the plaintexts 0 and 1, we can derive the value of d with the following set of equations. Since we know the value of e and n from the pubic key
+
+N = p*q
+m^(e) mod p * me mod q = m^(e) mod n (where m = 0)
+m^(e) mod p * me mod q = m^(e) mod n (where m = 1)
+
+phi(n) = (p-1)(q-1)
+
+d = e^(-1) mod ( phi(n) )
+
+With these set of equations, we can derive the value of d and break the RSA encryption and decryption algorithm. 
+
+

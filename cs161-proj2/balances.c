@@ -66,6 +66,88 @@ static struct balance *balance_add(struct balance *balances,
 	return p;
 }
 
+/* 
+ * This is a helper function for isValidBlock 
+ * Finds if there is an ancestor block's reward_tx or normal_tx variables equals hash_output 
+ * If (ancestor block) normal_tx.prev_transaction_hash != h then return 0
+ * Because coin has been spent and therefore the block is invalid
+ * Then checks if the signature on normal_tx equals dest_pubkey by calling transaction_verify
+ * If it does exist and all properties are fulfilled return 1 for valid 
+ * else 0 for invalid
+ * Arg blockchain_node *bn contains the block whose normal_tx.prev_transaction_hash = h
+ * Arg block *b is the block we are trying to validate
+ * Function should propogates up to parents to determine validatity 
+ */
+int findSpecificHash(struct blockchain_node *bn, struct block *b, hash_output h)
+{
+	/* Start by checking the block in *bn, normal_tx.prev_transaction_hash = h just in case
+	 */
+
+	/* For loop to propogate up until specific hash is found
+	 * Once GENESIS_BLOCK is checked and no matches found return 0
+	 */
+
+	/* Set the blockchain_node to the parent
+	 * 3. Check if no ancestor block that has the same normal_tx.prev_transaction_hash (h)
+	 * If same then invalid
+	 * 1. Then check if reward_tx or normal_tx in the block = h (compute with transaction_hash) 
+	 * None found then invalid
+	 * 2. Next use transaction_verify to check if normal_tx is valid
+	 * The inputs are ancestor->(reward_tx or normal_tx) and b->normal_tx
+	 * If transaction_verify  does not return 1 invalid
+	 */
+
+}
+
+/* 
+ * Checks all blocks and determines if it is valid. Returns 1 if it is valid, 0 if otherwise.
+ * blockchain_node should come in sorted
+ */
+int isValidBlock(struct blockchain_node *b)
+{
+	/* need for loop to go through each block starting with GENESIS_BLOCK
+	 */
+
+	/* If block height is 0, then it must equal 
+	 * GENESIS_BLOCK_HASH, or invalid
+	 */
+
+	/* Hash of block (use block_hash) must be smaller than TARGET_HASH. I.e must start
+	 * with 24 0 bits (use hash_output_is_below_target in common.c)
+	 */
+
+	/* the height of both of the block's transactions must be equal to the 
+	 * the block's height. Transaction is a struct has height variable
+	 */
+
+	/* The reward_tx.prev_transaction_hash, reward_tx.src_signature.r, 
+	 * and reward_tx.src_signature.s members must be 0
+	 * reward transactions are not signed and do not come  
+	 * from another public key. (Use the byte32_is_zero in common.c )
+	 */
+
+	/* If normal_tx.prev_transaction_hash is 0, 
+	 * then there is no normal transaction in this block.
+	 * Else 
+	 *	1. Transaction referrenced by normal_tx.prev_transaction_hash 
+	 * 	must exist as either the reward_tx or normal_tx of an ancestor 
+	 * 	block. (Use the transaction_hash in transaction.c)
+	 *  Will call findSpecificHash with blockchain_node containing the block in question
+	 *
+	 *	2. The signature (src_signature) on normal_tx must be valid 
+	 *	and should be using dest_pubkey of the previous transaction
+	 *	The previous transaction has the hash value normal_tx.prev_transaction_hash. 
+	 *	(Use the transaction_verify in transaction.c)
+	 *
+	 *	3. Coin must not have already been spent: 
+	 *	there must be no ancestor block that
+	 *	has the same normal_tx.prev_transaction_hash.
+	 *
+	 *  Handled by findSpecificHash
+	 */
+
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
@@ -85,10 +167,18 @@ int main(int argc, char *argv[])
 
 		/* TODO */
 		/* Feel free to add/modify/delete any code you need to. */
+		/* Add all blocks to a list to later be created into a tree*/
 	}
 
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */
+	/* Initialize a tree using tree struct with malloc or memset*/ 
+	/* Input list, and initialized tree into tree sort function to sort tree*/ 
+	/* Use DFS to find all valid paths and keep track of all paths already checked (valid paths are lists of blocks?)*/
+	/* For each path create a blockhain using blockchain_node struct (create function that takes list of blocks and makes blockchain?)*/
+	/* Append each blockchain to a list of blockchains
+	/* Then use  isValid each blockchain and choose the biggest valid chain*/ 
+
 
 	struct balance *balances = NULL, *p, *next;
 	/* Print out the list of balances. */

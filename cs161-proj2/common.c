@@ -103,7 +103,25 @@ EC_KEY *key_read(FILE *fp)
 	key = d2i_ECPrivateKey(NULL, &p, n);
 	if (key == NULL)
 		return NULL;
-
+	/* Compute the public key. (Not all versions of OpenSSL do this automatically.) */
+	EC_POINT *pubkey;
+	pubkey = EC_POINT_new(EC_KEY_get0_group(key));
+	if (pubkey == NULL) {
+		EC_KEY_free(key);
+		return NULL;
+	}
+	if (EC_POINT_mul(EC_KEY_get0_group(key), pubkey,
+		EC_KEY_get0_private_key(key), NULL, NULL, NULL) != 1) {
+		EC_POINT_free(pubkey);
+		EC_KEY_free(key);
+		return NULL;
+	}
+	if (EC_KEY_set_public_key(key, pubkey) != 1) {
+		EC_POINT_free(pubkey);
+		EC_KEY_free(key);
+		return NULL;
+	}
+	EC_POINT_free(pubkey);
 	return key;
 }
 

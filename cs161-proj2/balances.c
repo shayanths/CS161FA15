@@ -32,6 +32,18 @@ struct balance {
 	struct balance *next;
 };
 
+struct tree {
+	struct block b;
+	struct tree *kids;
+	struct tree *siblings;
+};
+
+static struct tree* sortTree(struct tree t, 
+{
+	kids = (struct tree *)malloc(sizeof(struct tree));
+	siblings = (struct tree *)malloc(sizeof(struct tree));
+}
+
 /* Add or subtract an amount from a linked list of balances. Call it like this:
  *   struct balance *balances = NULL;
  *

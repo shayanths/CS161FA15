@@ -38,10 +38,10 @@ struct tree {
 	struct tree *siblings;
 };
 
-static struct tree* sortTree(struct tree t, 
+static struct tree* sortTree(struct tree *t, struct blockchain_node *node) 
 {
-	kids = (struct tree *)malloc(sizeof(struct tree));
-	siblings = (struct tree *)malloc(sizeof(struct tree));
+	struct tree *kids = (struct tree *)malloc(sizeof(struct tree));
+	struct tree *siblings = (struct tree *)malloc(sizeof(struct tree));
 }
 
 /* Add or subtract an amount from a linked list of balances. Call it like this:
@@ -139,10 +139,10 @@ int isValidBlock(struct blockchain_node *b)
 	 */
 
 	/* If normal_tx.prev_transaction_hash is 0, 
-	 * then there is no normal transaction in this block.
+	 * vthen there is no normal transaction in this block.
 	 * Else 
 	 *	1. Transaction referrenced by normal_tx.prev_transaction_hash 
-	 * 	must exist as either the reward_tx or normal_tx of an ancestor 
+	  b* 	must exist as either the reward_tx or normal_tx of an ancestor 
 	 * 	block. (Use the transaction_hash in transaction.c)
 	 *  Will call findSpecificHash with blockchain_node containing the block in question
 	 *
@@ -163,24 +163,35 @@ int isValidBlock(struct blockchain_node *b)
 int main(int argc, char *argv[])
 {
 	int i;
-
+	struct tree *sorted_tree = malloc(sizeof(struct tree));
+	//This will act as sentinel node
+	struct blockchain_node *blockchain_list = malloc(sizeof(struct blockchain_node)); 
+		
+	
 	/* Read input block files. */
 	for (i = 1; i < argc; i++) {
 		char *filename;
 		struct block b;
 		int rc;
-
+		struct blockchain_node *tempNode = malloc(sizeof(struct blockchain_node));
+		
 		filename = argv[i];
+		// Validates whether the block is properly read
 		rc = block_read_filename(&b, filename);
 		if (rc != 1) {
 			fprintf(stderr, "could not read %s\n", filename);
 			exit(1);
 		}
-
-		/* TODO */
-		/* Feel free to add/modify/delete any code you need to. */
-		/* Add all blocks to a list to later be created into a tree*/
+		tempNode->b = b;
+		blockchain_list->parent  = tempNode;
+		blockchain_list = blockchain_list->parent;
+		free(tempNode);
 	}
+	sortTree(sorted_tree, blockchain_list);
+	struct blockchain_node *blockChainArray = malloc(sizeof(struct blockchain_node) * (i*i));
+	struct block b2;
+	blockChainArray[0].b = b2;
+ 
 
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */
@@ -188,12 +199,18 @@ int main(int argc, char *argv[])
 	/* Input list, and initialized tree into tree sort function to sort tree*/ 
 	/* Use DFS to find all valid paths and keep track of all paths already checked (valid paths are lists of blocks?)*/
 	/* For each path create a blockhain using blockchain_node struct (create function that takes list of blocks and makes blockchain?)*/
-	/* Append each blockchain to a list of blockchains
+	/* Append each blockchain to a list of blockchain*/
 	/* Then use  isValid each blockchain and choose the biggest valid chain*/ 
 
 
 	struct balance *balances = NULL, *p, *next;
 	/* Print out the list of balances. */
+	
+	// For loop going through block chain node for each block, and then for each transaction your calling add_balance
+	// Check if normal transaction exists, if not skip. If normal_tx.prev_transaction = 0, no normal transaction
+	// If normal transaction exists, add_balance(*,*,1)
+				//       add_balance(*,*,-1)
+	// Does normal transaction always have previous?
 	for (p = balances; p != NULL; p = next) {
 		next = p->next;
 		printf("%s %d\n", byte32_to_hex(p->pubkey.x), p->balance);

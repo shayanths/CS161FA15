@@ -27,7 +27,7 @@ struct blockchain_node {
 };
 
 struct blockchain_node_list {
-	int count;
+	int max_height;
 	struct blockchain_node *first;
 	struct blockchain_node *last;
 };
@@ -39,19 +39,15 @@ struct balance {
 	struct balance *next;
 };
 
-struct tree {
-	struct block b;
-	struct tree *kids;
-	struct tree *siblings;
+struct tree{
+	struct blockchain_node_list *child;
+	struct blockchain_node_list *parent;
 };
-
-static struct tree* sortTree(struct tree *t, struct blockchain_node_list *node) 
-{
-	//struct tree *kids = (struct tree *)malloc(sizeof(struct tree));
-	struct tree *siblings = (struct tree *)malloc(sizeof(struct tree));
-	return siblings;
-}
-
+struct blockchain_node_array {
+	struct blockchain_node_list *nodeArray;
+	int i;
+};
+	
 /* Add or subtract an amount from a linked list of balances. Call it like this:
  *   struct balance *balances = NULL;
  *
@@ -173,6 +169,9 @@ int isValidBlock(struct blockchain_node *b)
 static void list_push(struct blockchain_node_list *list, struct block b){
 	struct blockchain_node *tempNode = malloc(sizeof(struct blockchain_node));
 	tempNode->b = b;
+	if (list->max_height < b.height){
+		list->max_height = b.height;
+	}
 	if (list->last == NULL){
 		list->first = NULL;
 		list->last = tempNode;
@@ -182,8 +181,34 @@ static void list_push(struct blockchain_node_list *list, struct block b){
 		tempNode->child = list->last;
 		list->last = tempNode;
 	}
-	list->count++;
+	//list->count++;
 }
+
+
+static struct tree* sortTree(struct tree *t, struct blockchain_node_list *list) 
+{
+	struct blockchain_node_array *block_list = malloc(sizeof(struct blockchain_node_array) * list->max_height);
+	struct blockchain_node *iterator_node = malloc(sizeof(struct blockchain_node));
+	int i;
+	for (i = 0; i <= list->max_height; i++){
+		struct blockchain_node_list *level_list = malloc(sizeof(struct blockchain_node_list));
+		for(iterator_node=list->last; iterator_node != NULL; iterator_node = iterator_node->child){
+			if (iterator_node->b.height == i){
+				//struct block *b2 = &iterator_node->b;
+				list_push(level_list, iterator_node->b);
+				printf("Level Order \n %d", level_list->first->b.height);
+			}	
+		block_list[i].nodeArray = level_list; 
+		block_list[i].i = i;
+		//free(level_list);
+		}
+	}
+	struct tree *siblings = (struct tree *)malloc(sizeof(struct tree));
+	//struct tree * currentLevel = malloc(sizeof(struct tree));
+	printf("%d", block_list[0].nodeArray->first->b.height);
+	return siblings;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -207,11 +232,12 @@ int main(int argc, char *argv[])
 		list_push(mini_list, b);	
 	}
 	struct blockchain_node *iterator_node = NULL;
-	sortTree(sortedTree, mini_list);
+	printf("Max block height %d\n", mini_list->max_height);
 	// Example on how to iterate through blockchain_node_list
 	for (iterator_node = mini_list->last; iterator_node != NULL; iterator_node = iterator_node->child){
 		printf("%d\n", iterator_node->b.height);
 	}
+	sortTree(sortedTree, mini_list);
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */
 	/* Initialize a tree using tree struct with malloc or memset*/ 

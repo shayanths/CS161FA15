@@ -21,8 +21,15 @@ const hash_output GENESIS_BLOCK_HASH = {
 
 struct blockchain_node {
 	struct blockchain_node *parent;
+	struct blockchain_node *child;
 	struct block b;
 	int is_valid;
+};
+
+struct blockchain_node_list {
+	int count;
+	struct blockchain_node *first;
+	struct blockchain_node *last;
 };
 
 /* A simple linked list to keep track of account balances. */
@@ -38,7 +45,7 @@ struct tree {
 	struct tree *siblings;
 };
 
-static struct tree* sortTree(struct tree *t, struct blockchain_node *node) 
+static struct tree* sortTree(struct tree *t, struct blockchain_node_list *node) 
 {
 	//struct tree *kids = (struct tree *)malloc(sizeof(struct tree));
 	struct tree *siblings = (struct tree *)malloc(sizeof(struct tree));
@@ -163,21 +170,33 @@ int isValidBlock(struct blockchain_node *b)
 
 }
 
+static void list_push(struct blockchain_node_list *list, struct block b){
+	struct blockchain_node *tempNode = malloc(sizeof(struct blockchain_node));
+	tempNode->b = b;
+	if (list->last == NULL){
+		list->first = NULL;
+		list->last = tempNode;
+	}
+	else{
+		list->last->parent = tempNode;
+		tempNode->child = list->last;
+		list->last = tempNode;
+	}
+	list->count++;
+}
+
 int main(int argc, char *argv[])
 {
 	int i;
-	struct tree *sorted_tree = malloc(sizeof(struct tree));
+	struct tree *sortedTree = malloc(sizeof(struct tree));
+	//struct tree *sorted_tree = malloc(sizeof(struct tree));
 	//This will act as sentinel node
-	struct blockchain_node *blockchain_list = malloc(sizeof(struct blockchain_node)); 
-	struct blockchain_node *mini_list = malloc(sizeof(struct blockchain_node));	
-	
+	struct blockchain_node_list *mini_list = malloc(sizeof(struct blockchain_node_list));
 	/* Read input block files. */
 	for (i = 1; i < argc; i++) {
 		char *filename;
 		struct block b;
 		int rc;
-		struct blockchain_node *tempNode = malloc(sizeof(struct blockchain_node));
-		
 		filename = argv[i];
 		// Validates whether the block is properly read
 		rc = block_read_filename(&b, filename);
@@ -185,18 +204,12 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "could not read %s\n", filename);
 			exit(1);
 		}
-		tempNode->b = b;
-		mini_list->parent  = tempNode;
-		mini_list = mini_list->parent;
-		free(tempNode);
+		list_push(mini_list, b);	
 	}
-	blockchain_list->parent = mini_list;
-	
-	sortTree(sorted_tree, blockchain_list);
-	//struct blockchain_node *blockChainArray = malloc(sizeof(struct blockchain_node) * (i*i));
-	//struct block b2;
 	struct blockchain_node *iterator_node = NULL;
-	for (iterator_node = blockchain_list; iterator_node != NULL; iterator_node = iterator_node->parent){
+	sortTree(sortedTree, mini_list);
+	// Example on how to iterate through blockchain_node_list
+	for (iterator_node = mini_list->last; iterator_node != NULL; iterator_node = iterator_node->child){
 		printf("%d\n", iterator_node->b.height);
 	}
 	/* Organize into a tree, check validity, and output balances. */
@@ -207,8 +220,6 @@ int main(int argc, char *argv[])
 	/* For each path create a blockhain using blockchain_node struct (create function that takes list of blocks and makes blockchain?)*/
 	/* Append each blockchain to a list of blockchain*/
 	/* Then use  isValid each blockchain and choose the biggest valid chain*/ 
-
-
 	struct balance *balances = NULL, *p, *next;
 	/* Print out the list of balances. */
 	

@@ -181,39 +181,29 @@ static void list_push(struct blockchain_node_list *list, struct block b){
 		tempNode->child = list->last;
 		list->last = tempNode;
 	}
-	//list->count++;
 }
 
 
-static struct tree* sortTree(struct tree *t, struct blockchain_node_list *list) 
+static int sortTree(struct blockchain_node_array *t, struct blockchain_node_list *list) 
 {
-	struct blockchain_node_array *block_list = malloc(sizeof(struct blockchain_node_array) * list->max_height);
 	struct blockchain_node *iterator_node = malloc(sizeof(struct blockchain_node));
 	int i;
 	for (i = 0; i <= list->max_height; i++){
 		struct blockchain_node_list *level_list = malloc(sizeof(struct blockchain_node_list));
 		for(iterator_node=list->last; iterator_node != NULL; iterator_node = iterator_node->child){
 			if (iterator_node->b.height == i){
-				//struct block *b2 = &iterator_node->b;
 				list_push(level_list, iterator_node->b);
-				printf("Level Order \n %d", level_list->first->b.height);
 			}	
-		block_list[i].nodeArray = level_list; 
-		block_list[i].i = i;
-		//free(level_list);
+		t[i].nodeArray = level_list;
 		}
 	}
-	struct tree *siblings = (struct tree *)malloc(sizeof(struct tree));
-	//struct tree * currentLevel = malloc(sizeof(struct tree));
-	printf("%d", block_list[0].nodeArray->first->b.height);
-	return siblings;
+	return 0;
 }
 
 
 int main(int argc, char *argv[])
 {
 	int i;
-	struct tree *sortedTree = malloc(sizeof(struct tree));
 	//struct tree *sorted_tree = malloc(sizeof(struct tree));
 	//This will act as sentinel node
 	struct blockchain_node_list *mini_list = malloc(sizeof(struct blockchain_node_list));
@@ -231,13 +221,24 @@ int main(int argc, char *argv[])
 		}
 		list_push(mini_list, b);	
 	}
+	struct blockchain_node_array *level_order_array = malloc(sizeof(struct blockchain_node_array));
 	struct blockchain_node *iterator_node = NULL;
 	printf("Max block height %d\n", mini_list->max_height);
 	// Example on how to iterate through blockchain_node_list
-	for (iterator_node = mini_list->last; iterator_node != NULL; iterator_node = iterator_node->child){
+	/*for (iterator_node = mini_list->last; iterator_node != NULL; iterator_node = iterator_node->child){
 		printf("%d\n", iterator_node->b.height);
+	}*/
+	int rc2;
+	rc2 = sortTree(level_order_array, mini_list);
+	printf("Have to return this to avoid errors %d", rc2);
+	int x;
+	for (x = 0; x < mini_list->max_height; x++){
+		for (iterator_node=level_order_array[x].nodeArray->last; iterator_node != NULL; iterator_node = iterator_node->child){
+			printf("%d", iterator_node->b.height);
+		}
+		printf("\n");
 	}
-	sortTree(sortedTree, mini_list);
+
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */
 	/* Initialize a tree using tree struct with malloc or memset*/ 

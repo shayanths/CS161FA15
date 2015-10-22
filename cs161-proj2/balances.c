@@ -40,8 +40,9 @@ struct tree {
 
 static struct tree* sortTree(struct tree *t, struct blockchain_node *node) 
 {
-	struct tree *kids = (struct tree *)malloc(sizeof(struct tree));
+	//struct tree *kids = (struct tree *)malloc(sizeof(struct tree));
 	struct tree *siblings = (struct tree *)malloc(sizeof(struct tree));
+	return siblings;
 }
 
 /* Add or subtract an amount from a linked list of balances. Call it like this:
@@ -108,6 +109,7 @@ int findSpecificHash(struct blockchain_node *bn, struct block *b, hash_output h)
 	 * The inputs are ancestor->(reward_tx or normal_tx) and b->normal_tx
 	 * If transaction_verify  does not return 1 invalid
 	 */
+	return 0;
 
 }
 
@@ -157,6 +159,7 @@ int isValidBlock(struct blockchain_node *b)
 	 *
 	 *  Handled by findSpecificHash
 	 */
+	return 0;
 
 }
 
@@ -166,7 +169,7 @@ int main(int argc, char *argv[])
 	struct tree *sorted_tree = malloc(sizeof(struct tree));
 	//This will act as sentinel node
 	struct blockchain_node *blockchain_list = malloc(sizeof(struct blockchain_node)); 
-		
+	struct blockchain_node *mini_list = malloc(sizeof(struct blockchain_node));	
 	
 	/* Read input block files. */
 	for (i = 1; i < argc; i++) {
@@ -183,16 +186,19 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 		tempNode->b = b;
-		blockchain_list->parent  = tempNode;
-		blockchain_list = blockchain_list->parent;
+		mini_list->parent  = tempNode;
+		mini_list = mini_list->parent;
 		free(tempNode);
 	}
+	blockchain_list->parent = mini_list;
+	
 	sortTree(sorted_tree, blockchain_list);
-	struct blockchain_node *blockChainArray = malloc(sizeof(struct blockchain_node) * (i*i));
-	struct block b2;
-	blockChainArray[0].b = b2;
- 
-
+	//struct blockchain_node *blockChainArray = malloc(sizeof(struct blockchain_node) * (i*i));
+	//struct block b2;
+	struct blockchain_node *iterator_node = NULL;
+	for (iterator_node = blockchain_list; iterator_node != NULL; iterator_node = iterator_node->parent){
+		printf("%d\n", iterator_node->b.height);
+	}
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */
 	/* Initialize a tree using tree struct with malloc or memset*/ 

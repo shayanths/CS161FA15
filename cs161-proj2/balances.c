@@ -67,7 +67,7 @@ struct tree* search(struct tree* root, struct block b)
 struct tree* createnary(struct tree* root, struct block children_blocks[], int size)
 {
     //check if node exist
-    struct tree *newnode = search(root, children_blocks[0]);
+    struct tree *newnode = search(root, root-);
     //if node does not exist
     if(newnode == NULL){
         newnode = createNode(children_blocks[0]);
@@ -115,10 +115,10 @@ void createTree(struct block blocks[], int size, struct tree *root, int max_heig
 
 	root = createNode(blocks[0]);
 	struct tree *tmp = root;
-	for (i = 0; i < max_height; i++){
+	for (i = 1; i < max_height; i++){
 		struct block children_blocks[size];
 		int count = 0;
-		for (j = 0; j < size; j++){
+		for (j = 1; j < size; j++){
 			if (blocks[j].height == tmp->b.height+1){
 				children_blocks[count] = blocks[j];
 				count++;
@@ -127,29 +127,10 @@ void createTree(struct block blocks[], int size, struct tree *root, int max_heig
 				break;
 			}
 		}
-		root = createnary(tmp, children_blocks, size);
-		tmp = root->children->b;
-		struct tree *tmp = root;
-		for (i = 0; i < max_height; i++){
-			struct block children_blocks[size];
-			int count = 0;
-		for (j = 0; j < size; j++){
-			if (blocks[j].height == tmp->b.height+1){
-				children_blocks[count] = blocks[j];
-				count++;
-			}else{
-				children_blocks[count] = NULL;
-				break;
-			}
-		}
-		root = createnary(tmp, children_blocks, size);
-		tmp = root->children->b;
-
+		tmp = createnary(tmp, children_blocks, size);
+		tmp = tmp->children;	
 	}
-
-	}
-	
-
+	root->children = tmp;
 }
 
 

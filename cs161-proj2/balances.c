@@ -48,49 +48,49 @@ struct tree* createNode(struct block b){
 
 }
 
-// struct tree* search(struct tree* root, struct block b)
-// {
-//     if(root==NULL){
-//         return NULL;
-//     }
-//     if(b==root->b){
-//         return root;
-//     }
-//     struct tree* t = search(root->children, b);
-//     if(t==NULL){
-//         t = search(root->sibling, b);
-//     }
-//     return t;
+struct tree* search(struct tree* root, struct block b)
+{
+    if(root==NULL){
+        return NULL;
+    }
+    if(b==root->b){
+        return root;
+    }
+    struct tree* t = search(root->children, b);
+    if(t==NULL){
+        t = search(root->sibling, b);
+    }
+    return t;
 
-// }
+}
 
-// struct tree* createnary(struct tree* root, struct block children_blocks[], int size)
-// {
-//     //check if node exist
-//     struct tree *newnode = search(root, children_blocks[0]);
-//     //if node does not exist
-//     if(newnode == NULL){
-//         newnode = createNode(children_blocks[0]);
-//     }
-//     struct tree* parent = newnode;
-//     //create node of its children
-//     int j;
-//     for(j=0; j<size; j++){
-//         //for first child
-//         if(j==0){
-//              parent->children = createNode(children_blocks[j+1]);
-//              parent = parent->children;
-//         //for other children
-//         }else{
-//             parent->sibling = createNode(children_blocks[j+1]);
-//             parent = parent->sibling;
-//         }
-//     }
-//     if(root==NULL){
-//        root = newnode;
-//     }
-//     return root;
-// }
+struct tree* createnary(struct tree* root, struct block children_blocks[], int size)
+{
+    //check if node exist
+    struct tree *newnode = search(root, children_blocks[0]);
+    //if node does not exist
+    if(newnode == NULL){
+        newnode = createNode(children_blocks[0]);
+    }
+    struct tree* parent = newnode;
+    //create node of its children
+    int j;
+    for(j=0; j<size; j++){
+        //for first child
+        if(j==0){
+             parent->children = createNode(children_blocks[j+1]);
+             parent = parent->children;
+        //for other children
+        }else{
+            parent->sibling = createNode(children_blocks[j+1]);
+            parent = parent->sibling;
+        }
+    }
+    if(root==NULL){
+       root = newnode;
+    }
+    return root;
+}
 
 void createTree(struct block blocks[], int size, struct tree *root, int max_height) 
 {
@@ -113,41 +113,41 @@ void createTree(struct block blocks[], int size, struct tree *root, int max_heig
 		printf("%d\n", blocks[i].height);
 	}
 
-	// root = createNode(blocks[0]);
-	// struct tree *tmp = root;
-	// for (i = 0; i < max_height; i++){
-	// 	struct block children_blocks[size];
-	// 	int count = 0;
-	// 	for (j = 0; j < size; j++){
-	// 		if (blocks[j].height == tmp->b.height+1){
-	// 			children_blocks[count] = blocks[j];
-	// 			count++;
-	// 		}else{
-	// 			children_blocks[count] = NULL;
-	// 			break;
-	// 		}
-	// 	}
-	// 	root = createnary(tmp, children_blocks, size);
-	// 	tmp = root->children->b;
-	// 	struct tree *tmp = root;
-	// 	for (i = 0; i < max_height; i++){
-	// 		struct block children_blocks[size];
-	// 		int count = 0;
-	// 	for (j = 0; j < size; j++){
-	// 		if (blocks[j].height == tmp->b.height+1){
-	// 			children_blocks[count] = blocks[j];
-	// 			count++;
-	// 		}else{
-	// 			children_blocks[count] = NULL;
-	// 			break;
-	// 		}
-	// 	}
-	// 	root = createnary(tmp, children_blocks, size);
-	// 	tmp = root->children->b;
+	root = createNode(blocks[0]);
+	struct tree *tmp = root;
+	for (i = 0; i < max_height; i++){
+		struct block children_blocks[size];
+		int count = 0;
+		for (j = 0; j < size; j++){
+			if (blocks[j].height == tmp->b.height+1){
+				children_blocks[count] = blocks[j];
+				count++;
+			}else{
+				children_blocks[count] = NULL;
+				break;
+			}
+		}
+		root = createnary(tmp, children_blocks, size);
+		tmp = root->children->b;
+		struct tree *tmp = root;
+		for (i = 0; i < max_height; i++){
+			struct block children_blocks[size];
+			int count = 0;
+		for (j = 0; j < size; j++){
+			if (blocks[j].height == tmp->b.height+1){
+				children_blocks[count] = blocks[j];
+				count++;
+			}else{
+				children_blocks[count] = NULL;
+				break;
+			}
+		}
+		root = createnary(tmp, children_blocks, size);
+		tmp = root->children->b;
 
-	// }
+	}
 
-	// }
+	}
 	
 
 }
@@ -327,7 +327,7 @@ int main(int argc, char *argv[])
 
 	
 	// Example on how to iterate through blockchain_node_list
-	for (i = 0; i <= argc-1; i++){
+	for (i = 0; i < argc-1; i++){
 		printf("%d\n", blocks[i].height);
 	}
 	//Blocks should be sorted

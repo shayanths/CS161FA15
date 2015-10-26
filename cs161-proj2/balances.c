@@ -129,6 +129,23 @@ void createTree(struct block blocks[], int size, struct tree *root, int max_heig
 		}
 		root = createnary(tmp, children_blocks, size);
 		tmp = root->children->b;
+		struct tree *tmp = root;
+		for (i = 0; i < max_height; i++){
+			struct block children_blocks[size];
+			int count = 0;
+		for (j = 0; j < size; j++){
+			if (blocks[j].height == tmp->b.height+1){
+				children_blocks[count] = blocks[j];
+				count++;
+			}else{
+				children_blocks[count] = NULL;
+				break;
+			}
+		}
+		root = createnary(tmp, children_blocks, size);
+		tmp = root->children->b;
+
+	}
 
 	}
 	

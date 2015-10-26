@@ -21,15 +21,15 @@ const hash_output GENESIS_BLOCK_HASH = {
 
 struct blockchain_node {
 	struct blockchain_node *parent;
-	struct blockchain_node *child;
 	struct block b;
 	int is_valid;
 };
 
-struct blockchain_node_list {
-	int max_height;
-	struct blockchain_node *first;
-	struct blockchain_node *last;
+
+struct tree{
+  struct block b;
+  struct tree* children;
+  struct tree* sibling;
 };
 
 /* A simple linked list to keep track of account balances. */
@@ -39,15 +39,103 @@ struct balance {
 	struct balance *next;
 };
 
-struct tree{
-	struct blockchain_node_list *child;
-	struct blockchain_node_list *parent;
-};
-struct blockchain_node_array {
-	struct blockchain_node_list *nodeArray;
+struct tree* createNode(struct block b){
+	struct tree* newnode = (struct tree*)malloc(sizeof(struct tree));
+    newnode->children=NULL;
+    newnode->sibling=NULL;
+    newnode->b=b;
+    return newnode;
+
+}
+
+struct tree* search(struct tree* root, struct block b)
+{
+    if(root==NULL){
+        return;
+    }
+    if(data==root->b){
+        return root;
+    }
+    struct tree* t = search(root->child, b);
+    if(t==NULL){
+        t = search(root->sibling, b);
+    }
+    return t;
+
+}
+
+struct tree* createnary(struct tree* root, struct block children_blocks[], int size)
+{
+    //check if node exist
+    struct tree *newnode = search(root, children_blocks[0]);
+    //if node does not exist
+    if(newnode == NULL){
+        newnode = createNode(children_blocks[0]);
+    }
+    struct tree* parent = newnode;
+    //create node of its children
+    int j;
+    for(j=0; j<size; j++){
+        //for first child
+        if(j==0){
+             parent->child = createNode(children_blocks[j+1]);
+             parent = parent->child;
+        //for other children
+        }else{
+            parent->sibling = createNode(children_blocks[j+1]);
+            parent = parent->sibling;
+        }
+    }
+    if(root==NULL){
+       root = newnode;
+    }
+    return root;
+}
+
+void createTree(struct block blocks[], int size, struct tree *root, int max_height) 
+{
 	int i;
-};
+	int j;
 	
+	for (i = 0; i <= size; i++){
+		for(j=i+1; j <= size; j++){
+			if (blocks[j].height < blocks[i].height){
+				struct block tmp;
+				tmp = blocks[i];
+				blocks[i] = blocks[j];
+				blocks[j] = tmp;
+			}
+		}
+	}
+
+	printf("soorororortted\n");
+	for (i = 0; i < size; i++){
+		printf("%d\n", blocks[i].height);
+	}
+
+	root = createNode(blocks[0]);
+	struct tree *tmp = root;
+	for (i = 0; i < max_height; i++){
+		struct block children_blocks[size];
+		int count = 0;
+		for (j = 0; j < size; j++){
+			if (blocks[j].height == tmp->b.height+1){
+				children_blocks[count] = blocks[j];
+				count++;
+			}else{
+				children_blocks[count] = NULL;
+				break;
+			}
+		}
+		root = createnary(tmp, children_blocks, size);
+		tmp = root->children->b;
+
+	}
+	
+
+}
+
+
 /* Add or subtract an amount from a linked list of balances. Call it like this:
  *   struct balance *balances = NULL;
  *
@@ -166,39 +254,25 @@ int isValidBlock(struct blockchain_node *b)
 
 }
 
-static void list_push(struct blockchain_node_list *list, struct block b){
-	struct blockchain_node *tempNode = malloc(sizeof(struct blockchain_node));
-	tempNode->b = b;
-	if (list->max_height < b.height){
-		list->max_height = b.height;
-	}
-	if (list->last == NULL){
-		list->first = NULL;
-		list->last = tempNode;
-	}
-	else{
-		list->last->parent = tempNode;
-		tempNode->child = list->last;
-		list->last = tempNode;
+// void findBestPath(struct blocks *blocks){
+
+// }
+
+/*return 1 if genesis block, 0 if not*/
+int isGenesis(struct block *b){
+	hash_output h;
+	block_hash(b, h);
+	int g;
+	g = byte32_cmp(GENESIS_BLOCK_HASH, h);
+	if (g == 0){
+		return 1;
+	}else{
+		return 0;
 	}
 }
 
 
-static int sortTree(struct blockchain_node_array *t, struct blockchain_node_list *list) 
-{
-	struct blockchain_node *iterator_node = malloc(sizeof(struct blockchain_node));
-	int i;
-	for (i = 0; i <= list->max_height; i++){
-		struct blockchain_node_list *level_list = malloc(sizeof(struct blockchain_node_list));
-		for(iterator_node=list->last; iterator_node != NULL; iterator_node = iterator_node->child){
-			if (iterator_node->b.height == i){
-				list_push(level_list, iterator_node->b);
-			}	
-		t[i].nodeArray = level_list;
-		}
-	}
-	return 0;
-}
+
 
 
 int main(int argc, char *argv[])
@@ -206,8 +280,10 @@ int main(int argc, char *argv[])
 	int i;
 	//struct tree *sorted_tree = malloc(sizeof(struct tree));
 	//This will act as sentinel node
-	struct blockchain_node_list *mini_list = malloc(sizeof(struct blockchain_node_list));
 	/* Read input block files. */
+	int max_height = 0;
+	struct block blocks[argc];
+
 	for (i = 1; i < argc; i++) {
 		char *filename;
 		struct block b;
@@ -219,25 +295,28 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "could not read %s\n", filename);
 			exit(1);
 		}
-		list_push(mini_list, b);	
-	}
-	struct blockchain_node_array *level_order_array = malloc(sizeof(struct blockchain_node_array));
-	struct blockchain_node *iterator_node = NULL;
-	printf("Max block height %d\n", mini_list->max_height);
-	// Example on how to iterate through blockchain_node_list
-	/*for (iterator_node = mini_list->last; iterator_node != NULL; iterator_node = iterator_node->child){
-		printf("%d\n", iterator_node->b.height);
-	}*/
-	int rc2;
-	rc2 = sortTree(level_order_array, mini_list);
-	printf("Have to return this to avoid errors %d", rc2);
-	int x;
-	for (x = 0; x < mini_list->max_height; x++){
-		for (iterator_node=level_order_array[x].nodeArray->last; iterator_node != NULL; iterator_node = iterator_node->child){
-			printf("%d", iterator_node->b.height);
+		if (b.height == 0){
+			if (isGenesis(&b) == 1){
+				printf("yes is gen");
+				blocks[i-1] = b;
+			}
+		}else{
+			blocks[i-1] = b;
 		}
-		printf("\n");
+		if (max_height < b.height){
+			max_height = b.height;
+		}	
 	}
+
+	
+	// Example on how to iterate through blockchain_node_list
+	for (i = 0; i < argc-1; i++){
+		printf("%d\n", blocks[i].height);
+	}
+	//Blocks should be sorted
+	struct treeNode *tree;
+	createTree(blocks, argc, tree, max_height);
+
 
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */

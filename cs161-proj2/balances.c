@@ -39,6 +39,14 @@ struct balance {
 	struct balance *next;
 };
 
+void preorder(struct tree *p)
+{
+    if(p==NULL)return;
+    printf(" %d",p->b.height);
+    preorder(p->children);
+    preorder(p->sibling);
+}
+
 struct tree* createNode(struct block b){
 	struct tree* newnode = (struct tree*)malloc(sizeof(struct tree));
     newnode->children=NULL;
@@ -48,48 +56,43 @@ struct tree* createNode(struct block b){
 
 }
 
-struct tree* search(struct tree* root, struct block b)
+struct tree * add_sibling(struct tree * n, struct block b)
 {
-    if(root==NULL){
+    if ( n == NULL ){
         return NULL;
     }
-    if(b==root->b){
-        return root;
-    }
-    struct tree* t = search(root->children, b);
-    if(t==NULL){
-        t = search(root->sibling, b);
-    }
-    return t;
 
+    while (n->sibling){
+        n = n->sibling;
+    }
+
+    return (n->sibling = createNode(b));
 }
 
-struct tree* createnary(struct tree* root, struct block children_blocks[], int size)
+struct tree * add_child(struct tree * n, struct block b)
 {
-    //check if node exist
-    struct tree *newnode = search(root, root-);
-    //if node does not exist
-    if(newnode == NULL){
-        newnode = createNode(children_blocks[0]);
+    if ( n == NULL ){
+        return NULL;
     }
-    struct tree* parent = newnode;
-    //create node of its children
-    int j;
-    for(j=0; j<size; j++){
-        //for first child
-        if(j==0){
-             parent->children = createNode(children_blocks[j+1]);
-             parent = parent->children;
-        //for other children
-        }else{
-            parent->sibling = createNode(children_blocks[j+1]);
-            parent = parent->sibling;
-        }
+
+    if ( n->children ){
+        return add_sibling(n->children, b);
     }
-    if(root==NULL){
-       root = newnode;
+    else{
+        return (n->children = createNode(b));
     }
-    return root;
+}
+
+void createTreeLevel(struct block blocks[], int size, struct tree *root) 
+{
+	int j;
+	for (j=0; j < size-1; j++){
+		if (blocks[j].height == root->b.height){
+			root->sibling = add_sibling(root, blocks[j]);
+		}else if (blocks[j].height == root->b.height+1){
+			root= add_child(root, blocks[j]);
+		}
+	}
 }
 
 void createTree(struct block blocks[], int size, struct tree *root, int max_height) 
@@ -112,26 +115,17 @@ void createTree(struct block blocks[], int size, struct tree *root, int max_heig
 	for (i = 0; i < size-1; i++){
 		printf("%d\n", blocks[i].height);
 	}
-
 	root = createNode(blocks[0]);
-	struct tree *tmp = root;
-	for (i = 1; i < max_height; i++){
-		struct block children_blocks[size];
-		int count = 0;
-		for (j = 1; j < size; j++){
-			if (blocks[j].height == tmp->b.height+1){
-				children_blocks[count] = blocks[j];
-				count++;
-			}else{
-				children_blocks[count] = NULL;
-				break;
-			}
-		}
-		tmp = createnary(tmp, children_blocks, size);
-		tmp = tmp->children;	
-	}
-	root->children = tmp;
+	createTreeLevel(blocks, size, root);
+	printf("%d\n", root->b.height);
+	printf("%d\n", root->children->children->children->children->b.height);
+	printf("%d\n", root->children->children->children->children->sibling->b.height);
+	printf("%d\n", root->children->children->children->children->sibling->sibling->b.height);
+
+	
 }
+
+
 
 
 /* Add or subtract an amount from a linked list of balances. Call it like this:

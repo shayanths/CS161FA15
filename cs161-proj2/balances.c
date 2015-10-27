@@ -58,6 +58,33 @@ struct tree* createNode(struct block b){
 
 }
 
+int compareBlocks(struct block b1, struct block b2){
+	hash_output h1;
+	hash_output h2;
+	block_hash(&b1, h1);
+	block_hash(&b2, h2);
+	int g;
+	g = byte32_cmp(h1, h2);
+	return g;
+}
+
+struct tree * search(struct tree * tree, struct block b){
+	if(tree==NULL){
+        return NULL;
+	}
+	int rc;
+	rc = compareBlocks(b, tree->b);
+    if(rc == 0){
+        return tree;
+    }
+    struct tree* t = search(tree->children, b);
+    if(t==NULL){
+        t = search(tree->sibling, b);
+    }
+    return t;
+
+}
+
 struct tree * add_sibling(struct tree * n, struct block b)
 {
     if ( n == NULL ){
@@ -118,8 +145,6 @@ struct tree *createTree(struct block blocks[], int size, struct tree *root, int 
 }
 
 
-
-
 /* Add or subtract an amount from a linked list of balances. Call it like this:
  *   struct balance *balances = NULL;
  *
@@ -166,7 +191,7 @@ static struct balance *balance_add(struct balance *balances,
  * Arg block *b is the block we are trying to validate
  * Function should propogates up to parents to determine validatity 
  */
-int findSpecificHash(struct blockchain_node *bn, struct block *b, hash_output h)
+int findSpecificHash(struct blockchain_node *bn, struct block b, hash_output h)
 {
 	/* Start by checking the block in *bn, normal_tx.prev_transaction_hash = h just in case
 	 */
@@ -174,6 +199,38 @@ int findSpecificHash(struct blockchain_node *bn, struct block *b, hash_output h)
 	/* For loop to propogate up until specific hash is found
 	 * Once GENESIS_BLOCK is checked and no matches found return 0
 	 */
+	hash_output r_hash;
+	hash_output n_hash;
+	int final =0;
+	while (bn->parent != NULL){
+		int rc;
+		int rc2;
+		struct block block_ancestor = bn->parent->b;
+		int spent = byte32_cmp(block_ancestor.normal_tx.prev_transaction_hash, h);
+		if (spent==0){
+			return 0;
+		}
+		transaction_hash(&block_ancestor.normal_tx, n_hash);
+		transaction_hash(&block_ancestor.reward_tx, r_hash);
+		rc =  byte32_cmp(h, n_hash);
+		rc2 = byte32_cmp(h, r_hash);
+		if (rc == 0 && final != 1){
+			rc = transaction_verify(&block_ancestor.normal_tx, &b.normal_tx);
+			if (rc ==1){
+				final = 1;
+			}
+		}else{
+			return 0;
+		}
+		if (rc2 == 0 && final != 1){
+			rc2 = transaction_verify(&block_ancestor.normal_tx, &b.normal_tx);
+			if (rc2 ==1){
+				final = 1;
+			}
+		}
+		bn = bn->parent;
+	}
+	return final;
 
 	/* Set the blockchain_node to the parent
 	 * 3. Check if no ancestor block that has the same normal_tx.prev_transaction_hash (h)
@@ -184,18 +241,52 @@ int findSpecificHash(struct blockchain_node *bn, struct block *b, hash_output h)
 	 * The inputs are ancestor->(reward_tx or normal_tx) and b->normal_tx
 	 * If transaction_verify  does not return 1 invalid
 	 */
-	return 0;
+}
 
+struct block findHash(struct blockchain_node *bn, struct block b, hash_output h)
+{
+
+	hash_output r_hash;
+	hash_output n_hash;
+	struct block block_ancestor;
+	while (bn != NULL){
+		int rc;
+		int rc2;
+		block_ancestor = bn->parent->b;
+		transaction_hash(&block_ancestor.normal_tx, n_hash);
+		transaction_hash(&block_ancestor.reward_tx, r_hash);
+		rc =  byte32_cmp(h, n_hash);
+		rc2 = byte32_cmp(h, r_hash);
+		if (rc == 0){
+			return block_ancestor;
+		}
+		if (rc2 == 0){
+			return block_ancestor;
+		}
+		bn = bn->parent;
+	}
+	return block_ancestor;
+}
+
+/*return 1 if genesis block, 0 if not*/
+int isGenesis(struct block *b){
+	hash_output h;
+	block_hash(b, h);
+	int g;
+	g = byte32_cmp(GENESIS_BLOCK_HASH, h);
+	if (g == 0){
+		return 1;
+	}else{
+		return 0;
+	}
 }
 
 /* 
  * Checks all blocks and determines if it is valid. Returns 1 if it is valid, 0 if otherwise.
  * blockchain_node should come in sorted
  */
-int isValidBlock(struct blockchain_node *b)
+int isValidBlock(struct blockchain_node *bn)
 {
-	/* need for loop to go through each block starting with GENESIS_BLOCK
-	 */
 
 	/* If block height is 0, then it must equal 
 	 * GENESIS_BLOCK_HASH, or invalid
@@ -220,7 +311,8 @@ int isValidBlock(struct blockchain_node *b)
 	 * Else 
 	 *	1. Transaction referrenced by normal_tx.prev_transaction_hash 
 	  b* 	must exist as either the reward_tx or normal_tx of an ancestor 
-	 * 	block. (Use the transaction_hash in transaction.c)
+	 * 	block. (Use the transaction_hash in transaction.
+	 c)
 	 *  Will call findSpecificHash with blockchain_node containing the block in question
 	 *
 	 *	2. The signature (src_signature) on normal_tx must be valid 
@@ -230,29 +322,125 @@ int isValidBlock(struct blockchain_node *b)
 	 *
 	 *	3. Coin must not have already been spent: 
 	 *	there must be no ancestor block that
-	 *	has the same normal_tx.prev_transaction_hash.
+	 *	has t
+	 he same normal_tx.prev_transaction_hash.
 	 *
 	 *  Handled by findSpecificHash
 	 */
+	int rc;
+	int final;
+	while (bn != NULL){	
+		struct block block_ancestor = bn->parent->b;
+		hash_output ancestor_hash;
+		block_hash(&block_ancestor, ancestor_hash);
+		rc = hash_output_is_below_target(ancestor_hash);
+		if (rc ==1){
+			if(block_ancestor.height == block_ancestor.normal_tx.height && block_ancestor.height == block_ancestor.reward_tx.height){
+				if(byte32_is_zero(block_ancestor.reward_tx.prev_transaction_hash) && byte32_is_zero(block_ancestor.reward_tx.src_signature.r) && byte32_is_zero(block_ancestor.reward_tx.src_signature.s)){
+					if (byte32_is_zero(block_ancestor.normal_tx.prev_transaction_hash) == 0){
+						final = findSpecificHash(bn, block_ancestor, block_ancestor.normal_tx.prev_transaction_hash);
+					}
+					else{
+						final = 1;
+					}
+				}else{
+					final = 0;
+					break;
+				}
+			} else {
+				final = 0;
+				break;
+			}
+		} else{
+			final = 0;
+			break;
+		}
+		bn = bn->parent;
+	}
+	if (final ==1){
+
+		int gen;
+		gen = isGenesis(&bn->b);
+		if (gen==1){
+			return 1;
+		}else{
+			return 0;
+		}
+	}
 	return 0;
 
 }
 
-// void findBestPath(struct blocks *blocks){
 
-// }
 
-/*return 1 if genesis block, 0 if not*/
-int isGenesis(struct block *b){
-	hash_output h;
-	block_hash(b, h);
-	int g;
-	g = byte32_cmp(GENESIS_BLOCK_HASH, h);
-	if (g == 0){
-		return 1;
-	}else{
-		return 0;
+
+struct blockchain_node * dfs (struct tree * tree, int size){
+	struct blockchain_node *tmp[size*size];
+	struct blockchain_node *tmp_node = (struct blockchain_node * )malloc(sizeof(struct blockchain_node));
+	tmp_node->b = tree->b;
+	tmp_node->parent =NULL;
+	tmp[0] = tmp_node;
+	int i = 1;
+	struct tree *child = tree->children;
+	while (child != NULL){ 
+		struct blockchain_node *temp2 = (struct blockchain_node * )malloc(sizeof(struct blockchain_node));
+		temp2->b = child->b;
+		temp2->parent = tmp_node;
+		child = child->children;
+		tmp_node = temp2;
+		tmp[i] = tmp_node;
+		i++;
 	}
+	int k;
+	for (k=i-1; k >= 1; k--){
+		int j = i+1;
+		tmp_node = tmp[k];
+		child = search(tree, tmp_node->b);
+		struct tree * parent_child = search(tree, tmp_node->b); 
+		while(child->sibling != NULL){
+			child = child->sibling;
+			struct blockchain_node *temp2 = (struct blockchain_node * )malloc(sizeof(struct blockchain_node));
+			temp2->b = child->b;
+			temp2->parent = tmp[k-1];
+			tmp[j] = temp2;
+			int curr_value = j;
+			j++;
+			if (parent_child->children != NULL){
+				parent_child = parent_child->children;
+				struct blockchain_node * temp4 = (struct blockchain_node * )malloc(sizeof(struct blockchain_node));
+				struct blockchain_node *parent_node = tmp[curr_value];
+				temp4->b = parent_child->b;
+				temp4->parent = parent_node;
+				tmp[j] = temp4;
+				j++;	
+				while (parent_child->sibling != NULL) {
+					parent_child = parent_child->sibling;
+					struct blockchain_node *temp2 = (struct blockchain_node * )malloc(sizeof(struct blockchain_node));
+					temp2->b = parent_child->b;
+					temp2->parent = parent_node;
+					tmp[j] = temp2;
+					j++;
+				}
+			}
+		}
+	}
+	int a =0;
+	struct blockchain_node * best_block = (struct blockchain_node *) malloc(sizeof(struct blockchain_node));
+	struct blockchain_node * temp_block = (struct blockchain_node *) malloc(sizeof(struct blockchain_node));
+	int best_height = 0;
+	int height = 0;
+	while(tmp[a]!=NULL){
+		temp_block = tmp[a];
+		if (isValidBlock(temp_block)){
+			height = temp_block->b.height;
+			if (height > best_height){
+				best_block = temp_block;
+				best_height = height;
+			}
+		}
+		a++;
+	}
+	return best_block;
 }
 
 
@@ -284,8 +472,8 @@ int main(int argc, char *argv[])
 
 	struct tree *tree = (struct tree*) malloc(sizeof(struct tree));
 	tree = createTree(blocks, argc, tree, max_height);
-	preorder(tree);
-
+	struct blockchain_node * best_blockchain= (struct blockchain_node*) malloc(sizeof(struct blockchain_node));
+	best_blockchain = dfs(tree, argc);
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */
 	/* Initialize a tree using tree struct with malloc or memset*/ 
@@ -303,6 +491,17 @@ int main(int argc, char *argv[])
 	// If normal transaction exists, add_balance(*,*,1)
 				//       add_balance(*,*,-1)
 	// Does normal transaction always have previous?
+	while (best_blockchain != NULL){
+		struct block check_block = best_blockchain->b;
+		if(byte32_is_zero(check_block.normal_tx.prev_transaction_hash) == 0){
+			struct block trans = findHash(best_blockchain, check_block, check_block.normal_tx.prev_transaction_hash);
+			balances = balance_add(balances, &trans.normal_tx.dest_pubkey, -1);
+			balances = balance_add(balances, &check_block.normal_tx.dest_pubkey, 1);	
+		}
+		balances = balance_add(balances, &check_block.reward_tx.dest_pubkey, 1);
+		best_blockchain = best_blockchain->parent;
+	}
+
 	for (p = balances; p != NULL; p = next) {
 		next = p->next;
 		printf("%s %d\n", byte32_to_hex(p->pubkey.x), p->balance);

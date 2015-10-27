@@ -41,8 +41,10 @@ struct balance {
 
 void preorder(struct tree *p)
 {
-    if(p==NULL)return;
-    printf(" %d",p->b.height);
+    if(p==NULL){
+    	return;
+    }
+    printf(" %d\n",p->b.height);
     preorder(p->children);
     preorder(p->sibling);
 }
@@ -83,19 +85,20 @@ struct tree * add_child(struct tree * n, struct block b)
     }
 }
 
-void createTreeLevel(struct block blocks[], int size, struct tree *root) 
+struct tree *createTreeLevel(struct block blocks[], int size, struct tree *root) 
 {
 	int j;
 	for (j=0; j < size-1; j++){
 		if (blocks[j].height == root->b.height){
-			root->sibling = add_sibling(root, blocks[j]);
+			add_sibling(root, blocks[j]);
 		}else if (blocks[j].height == root->b.height+1){
 			root= add_child(root, blocks[j]);
 		}
 	}
+	return root;
 }
 
-void createTree(struct block blocks[], int size, struct tree *root, int max_height) 
+struct tree *createTree(struct block blocks[], int size, struct tree *root, int max_height) 
 {
 	int i;
 	int j;
@@ -111,18 +114,9 @@ void createTree(struct block blocks[], int size, struct tree *root, int max_heig
 		}
 	}
 
-	printf("soorororortted\n");
-	for (i = 0; i < size-1; i++){
-		printf("%d\n", blocks[i].height);
-	}
 	root = createNode(blocks[0]);
-	createTreeLevel(blocks, size, root);
-	printf("%d\n", root->b.height);
-	printf("%d\n", root->children->children->children->children->b.height);
-	printf("%d\n", root->children->children->children->children->sibling->b.height);
-	printf("%d\n", root->children->children->children->children->sibling->sibling->b.height);
-
-	
+	createTreeLevel(blocks, size, root);	
+	return root;
 }
 
 
@@ -307,8 +301,8 @@ int main(int argc, char *argv[])
 	}
 	//Blocks should be sorted
 	struct tree *tree = (struct tree*) malloc(sizeof(struct tree));
-	createTree(blocks, argc, tree, max_height);
-
+	tree = createTree(blocks, argc, tree, max_height);
+	preorder(tree);
 
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */

@@ -249,7 +249,7 @@ struct block findHash(struct blockchain_node *bn, struct block b, hash_output h)
 	hash_output r_hash;
 	hash_output n_hash;
 	struct block block_ancestor;
-	while (bn != NULL){
+	while (bn->parent != NULL){
 		int rc;
 		int rc2;
 		block_ancestor = bn->parent->b;
@@ -329,7 +329,7 @@ int isValidBlock(struct blockchain_node *bn)
 	 */
 	int rc;
 	int final;
-	while (bn != NULL){	
+	while (bn->parent != NULL){	
 		struct block block_ancestor = bn->parent->b;
 		hash_output ancestor_hash;
 		block_hash(&block_ancestor, ancestor_hash);

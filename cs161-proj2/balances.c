@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,6 +19,17 @@ const hash_output GENESIS_BLOCK_HASH = {
 	0x00, 0x00, 0x00, 0x0e, 0x5a, 0xc9, 0x8c, 0x78, 0x98, 0x00, 0x70, 0x2a, 0xd2, 0xa6, 0xf3, 0xca,
 	0x51, 0x0d, 0x40, 0x9d, 0x6c, 0xca, 0x89, 0x2e, 0xd1, 0xc7, 0x51, 0x98, 0xe0, 0x4b, 0xde, 0xec,
 };
+const  unsigned char pubkey5x[] = {
+	0xbd, 0x63, 0x38, 0x38, 0x61, 0xd8, 0x45, 0xb6, 0x26, 0x37, 0xf2, 0x21, 0xca, 0x3b, 0x4c, 0xc2,
+	0x1d, 0x1f, 0x82 ,0xd5, 0xc0, 0xe0, 0x18, 0xb8, 0xf2, 0xfc, 0x29, 0x06, 0x70, 0x2c, 0x4f, 0x1b
+};
+
+const  unsigned char pubkey5y[] ={
+	0x17, 0xe6, 0xcb, 0x83, 0x58, 0x16, 0x72, 0xfd, 0x7d, 0x69, 0x0c, 0x54, 0x16, 0xa5, 0x0d, 0x2a,
+	0x0a, 0xaf, 0x3d, 0x9e, 0xa9, 0x61, 0x76, 0x1a, 0xb7, 0x00, 0x01, 0x40, 0xbe, 0xa7, 0x82, 0x18
+};
+
+
 
 struct blockchain_node {
 	struct blockchain_node *parent;
@@ -38,6 +50,59 @@ struct balance {
 	int balance;
 	struct balance *next;
 };
+static EC_KEY *generate_key_from_buffer(const unsigned char buf[32])
+{
+	EC_KEY *key;
+	BIGNUM *bn;
+	int rc;
+
+	key = NULL;
+	bn = NULL;
+
+	key = EC_KEY_new_by_curve_name(EC_GROUP_NID);
+	if (key == NULL)
+		goto err;
+
+	bn = BN_bin2bn(buf, 32, NULL);
+	if (bn == NULL)
+		goto err;
+
+	rc = EC_KEY_set_private_key(key, bn);
+	if (rc != 1)
+		goto err;
+
+	BN_free(bn);
+
+	return key;
+
+err:
+	if (key != NULL)
+		EC_KEY_free(key);
+	if (bn != NULL)
+		BN_free(bn);
+	return NULL;
+}
+static EC_KEY *generate_key_bl4(void){
+
+	unsigned char buf[32];
+	int i;
+	srand(1234);
+	for (i = 0; i < 32; i++) {
+		buf[i] = rand() & 0xff;
+	}
+	return generate_key_from_buffer(buf);
+}
+
+static EC_KEY *generate_key_bl5(time_t s){
+
+	unsigned char buf[32];
+	int i;
+	srand(s);
+	for (i = 0; i < 32; i++) {
+		buf[i] = rand() & 0xff;
+	}
+	return generate_key_from_buffer(buf);
+}
 
 void preorder(struct tree *p)
 {
@@ -47,6 +112,15 @@ void preorder(struct tree *p)
     printf(" %d\n",p->b.height);
     preorder(p->children);
     preorder(p->sibling);
+}
+
+void blockchain_print(struct blockchain_node *bn){
+	while (bn->parent != NULL){
+		struct block bl = bn->b;
+		block_print(&bl, stdout);
+		bn = bn->parent;
+	}
+	block_print(&bn->b, stdout);
 }
 
 struct tree* createNode(struct block b){
@@ -177,6 +251,18 @@ static struct balance *balance_add(struct balance *balances,
 	p->next = balances;
 	return p;
 }
+/*return 1 if genesis block, 0 if not*/
+int isGenesis(struct block *b){
+	hash_output h;
+	block_hash(b, h);
+	int g;
+	g = byte32_cmp(GENESIS_BLOCK_HASH, h);
+	if (g == 0){
+		return 1;
+	}else{
+		return 0;
+	}
+}
 
 /* 
  * This is a helper function for isValidBlock 
@@ -200,36 +286,46 @@ int findSpecificHash(struct blockchain_node *bn, struct block b, hash_output h)
 	 */
 	hash_output r_hash;
 	hash_output n_hash;
-	int final =0;
-	while (bn->parent != NULL){
+	struct block block_ancestor;
+	while (bn != NULL){
 		int rc;
 		int rc2;
-		struct block block_ancestor = bn->parent->b;
-		int spent = byte32_cmp(block_ancestor.normal_tx.prev_transaction_hash, h);
-		if (spent==0){
-			return 0;
-		}
+		block_ancestor = bn->b;
 		transaction_hash(&block_ancestor.normal_tx, n_hash);
 		transaction_hash(&block_ancestor.reward_tx, r_hash);
-		rc =  byte32_cmp(h, n_hash);
-		rc2 = byte32_cmp(h, r_hash);
-		if (rc == 0 && final != 1){
-			rc = transaction_verify(&block_ancestor.normal_tx, &b.normal_tx);
-			if (rc ==1){
-				final = 1;
-			}
-		}else{
+		rc = byte32_is_zero(r_hash);
+		rc2 = byte32_is_zero(n_hash);
+		if (rc == 1 || rc2 == 1){
 			return 0;
 		}
-		if (rc2 == 0 && final != 1){
-			rc2 = transaction_verify(&block_ancestor.normal_tx, &b.normal_tx);
-			if (rc2 ==1){
-				final = 1;
+
+		rc =  byte32_cmp(h, n_hash);
+		rc2 = byte32_cmp(h, r_hash);
+		if (rc == 0){
+			rc = transaction_verify(&b.normal_tx, &block_ancestor.normal_tx);
+			if (rc == 1){
+				return 1;
 			}
 		}
+		if (rc2 == 0){
+			rc2 = transaction_verify(&b.normal_tx, &block_ancestor.reward_tx);
+			if (rc2 ==1){
+				return 1;
+			}
+		}
+		
+		if (isGenesis(&block_ancestor)){
+			return 0;
+		}
+
+		int spent = byte32_cmp(block_ancestor.normal_tx.prev_transaction_hash, h);
+		if (spent==0 && b.height != block_ancestor.height){
+			return 0;
+		}
 		bn = bn->parent;
+		
 	}
-	return final;
+	return 0;
 
 	/* Set the blockchain_node to the parent
 	 * 3. Check if no ancestor block that has the same normal_tx.prev_transaction_hash (h)
@@ -242,43 +338,35 @@ int findSpecificHash(struct blockchain_node *bn, struct block b, hash_output h)
 	 */
 }
 
+
 struct block findHash(struct blockchain_node *bn, struct block b, hash_output h)
 {
 
 	hash_output r_hash;
 	hash_output n_hash;
 	struct block block_ancestor;
-	while (bn->parent != NULL){
+	while (bn->parent != NULL ){
 		int rc;
 		int rc2;
-		block_ancestor = bn->parent->b;
+		bn = bn->parent;
+		block_ancestor = bn->b;
 		transaction_hash(&block_ancestor.normal_tx, n_hash);
 		transaction_hash(&block_ancestor.reward_tx, r_hash);
 		rc =  byte32_cmp(h, n_hash);
 		rc2 = byte32_cmp(h, r_hash);
 		if (rc == 0){
+
 			return block_ancestor;
 		}
 		if (rc2 == 0){
+
 			return block_ancestor;
 		}
-		bn = bn->parent;
 	}
 	return block_ancestor;
 }
 
-/*return 1 if genesis block, 0 if not*/
-int isGenesis(struct block *b){
-	hash_output h;
-	block_hash(b, h);
-	int g;
-	g = byte32_cmp(GENESIS_BLOCK_HASH, h);
-	if (g == 0){
-		return 1;
-	}else{
-		return 0;
-	}
-}
+
 
 /* 
  * Checks all blocks and determines if it is valid. Returns 1 if it is valid, 0 if otherwise.
@@ -327,38 +415,12 @@ int isValidBlock(struct blockchain_node *bn)
 	 *  Handled by findSpecificHash
 	 */
 	int rc;
-	int final;
-	while (bn->parent != NULL){	
-		struct block block_ancestor = bn->parent->b;
-		hash_output ancestor_hash;
-		block_hash(&block_ancestor, ancestor_hash);
-		rc = hash_output_is_below_target(ancestor_hash);
-		if (rc ==1){
-			if(block_ancestor.height == block_ancestor.normal_tx.height && block_ancestor.height == block_ancestor.reward_tx.height){
-				if(byte32_is_zero(block_ancestor.reward_tx.prev_transaction_hash) && byte32_is_zero(block_ancestor.reward_tx.src_signature.r) && byte32_is_zero(block_ancestor.reward_tx.src_signature.s)){
-					if (byte32_is_zero(block_ancestor.normal_tx.prev_transaction_hash) == 0){
-						final = findSpecificHash(bn, block_ancestor, block_ancestor.normal_tx.prev_transaction_hash);
-					}
-					else{
-						final = 1;
-					}
-				}else{
-					final = 0;
-					break;
-				}
-			} else {
-				final = 0;
-				break;
-			}
-		} else{
-			final = 0;
-			break;
-		}
-		bn = bn->parent;
-	}
-	if (final ==1){
-
+	int rc1;
+	int rc2;
+	int final =0;
+	if (bn->parent == NULL){
 		int gen;
+
 		gen = isGenesis(&bn->b);
 		if (gen==1){
 			return 1;
@@ -366,8 +428,45 @@ int isValidBlock(struct blockchain_node *bn)
 			return 0;
 		}
 	}
-	return 0;
-
+	while (bn->parent != NULL){	
+		struct block block_ancestor = bn->b;
+		hash_output ancestor_hash;
+		if((block_ancestor.height != block_ancestor.normal_tx.height) || (block_ancestor.height != block_ancestor.reward_tx.height)){
+			return 0;
+		}
+		block_hash(&block_ancestor, ancestor_hash);
+		rc = hash_output_is_below_target(ancestor_hash);
+		if (rc !=1){
+			return 0;
+		}
+		rc = byte32_is_zero(block_ancestor.reward_tx.prev_transaction_hash);
+		rc1 = byte32_is_zero(block_ancestor.reward_tx.src_signature.r);
+		rc2 = byte32_is_zero(block_ancestor.reward_tx.src_signature.s);
+		if((rc == 0)){
+			return 0;
+		}
+		if (rc1 == 0) {
+			return 0;
+		}
+		if (rc2 == 0){
+			return 0;
+		}
+		rc = byte32_is_zero(block_ancestor.normal_tx.prev_transaction_hash) ;
+		if (rc == 0){
+			final = findSpecificHash(bn, block_ancestor, block_ancestor.normal_tx.prev_transaction_hash);
+			if (final == 0){
+				return 0;
+			}
+		}
+		bn = bn->parent;
+	}
+	int gen;
+	gen = isGenesis(&bn->b);
+	if (gen==1){
+		return 1;
+	}else{
+		return 0;
+	}
 }
 
 
@@ -391,8 +490,9 @@ struct blockchain_node * dfs (struct tree * tree, int size){
 		i++;
 	}
 	int k;
+	int j = i;
 	for (k=i-1; k >= 1; k--){
-		int j = i+1;
+		
 		tmp_node = tmp[k];
 		child = search(tree, tmp_node->b);
 		struct tree * parent_child = search(tree, tmp_node->b); 
@@ -430,13 +530,16 @@ struct blockchain_node * dfs (struct tree * tree, int size){
 	int height = 0;
 	while(tmp[a]!=NULL){
 		temp_block = tmp[a];
-		if (isValidBlock(temp_block)){
+		temp_block->is_valid = isValidBlock(temp_block);
+		if (temp_block->is_valid ==1){
 			height = temp_block->b.height;
-			if (height > best_height){
+			if (height >= best_height){
 				best_block = temp_block;
 				best_height = height;
 			}
+
 		}
+
 		a++;
 	}
 	return best_block;
@@ -473,6 +576,7 @@ int main(int argc, char *argv[])
 	tree = createTree(blocks, argc, tree, max_height);
 	struct blockchain_node * best_blockchain= (struct blockchain_node*) malloc(sizeof(struct blockchain_node));
 	best_blockchain = dfs(tree, argc);
+
 	/* Organize into a tree, check validity, and output balances. */
 	/* TODO */
 	/* Initialize a tree using tree struct with malloc or memset*/ 
@@ -490,23 +594,180 @@ int main(int argc, char *argv[])
 	// If normal transaction exists, add_balance(*,*,1)
 				//       add_balance(*,*,-1)
 	// Does normal transaction always have previous?
+
+
+	struct block head;
+	struct transaction transact;
+	struct blockchain_node *newchain =  (struct blockchain_node*) malloc(sizeof(struct blockchain_node));
+	newchain = best_blockchain;
+	head = best_blockchain->b;
+	transact = best_blockchain->parent->b.normal_tx;
+	int rc ;
+	blockchain_print(best_blockchain);
 	while (best_blockchain != NULL){
 		struct block check_block = best_blockchain->b;
-		if(byte32_is_zero(check_block.normal_tx.prev_transaction_hash) == 0){
-			struct block trans = findHash(best_blockchain, check_block, check_block.normal_tx.prev_transaction_hash);
-			balances = balance_add(balances, &trans.normal_tx.dest_pubkey, -1);
-			balances = balance_add(balances, &check_block.normal_tx.dest_pubkey, 1);	
+		struct block trans;
+		trans = findHash(best_blockchain, check_block, check_block.normal_tx.prev_transaction_hash);
+		
+		int rc1;
+		hash_output n_hash;
+		hash_output r_hash;
+		rc = byte32_is_zero(check_block.normal_tx.prev_transaction_hash);
+		if(rc == 0){
+			trans = findHash(best_blockchain, check_block, check_block.normal_tx.prev_transaction_hash);
+			transaction_hash(&trans.normal_tx, n_hash);
+			transaction_hash(&trans.reward_tx, r_hash);
+			rc = byte32_cmp(check_block.normal_tx.prev_transaction_hash, n_hash);
+			rc1= byte32_cmp(check_block.normal_tx.prev_transaction_hash, r_hash);
+			if(rc == 0){
+				balances = balance_add(balances, &trans.normal_tx.dest_pubkey, -1);
+				balances = balance_add(balances, &check_block.normal_tx.dest_pubkey, 1);
+			}else if (rc1 == 0){
+				balances = balance_add(balances, &trans.reward_tx.dest_pubkey, -1);
+				balances = balance_add(balances, &check_block.normal_tx.dest_pubkey, 1);
+			}
+			
 		}
-		printf("%s\n", byte32_to_hex(&check_block.reward_tx.dest_pubkey.x));
 		balances = balance_add(balances, &check_block.reward_tx.dest_pubkey, 1);
 		best_blockchain = best_blockchain->parent;
 	}
 
+
+	
 	for (p = balances; p != NULL; p = next) {
 		next = p->next;
-		printf("%s %d\n", byte32_to_hex(p->pubkey.x), p->balance);
+		if (byte32_is_zero(p->pubkey.x) != 1){
+			printf("%s %d\n", byte32_to_hex(p->pubkey.x), p->balance);
+		}
 		free(p);
 	}
+	struct block newblock;
+	/* Build on top of the head of the main chain. */
 
+	block_init(&newblock, &head);
+	/* Give the reward to us. */
+	EC_KEY *mykey = key_read_filename("mykey.priv");
+	transaction_set_dest_privkey(&newblock.reward_tx, mykey);
+	/* The last transaction was in block 4. */
+	transaction_set_prev_transaction(&newblock.normal_tx, &transact);
+	/* Send it to us. */
+
+	transaction_set_dest_privkey(&newblock.normal_tx, mykey);
+	/* Sign it with the guessed private key. */
+	EC_KEY *weakkey;
+
+	weakkey = key_read_filename("bl4.priv");
+
+	transaction_sign(&newblock.normal_tx, weakkey);
+	/* Mine the new block. */
+	block_mine(&newblock);
+	/* Save to a file. */
+	block_write_filename(&newblock, "myblock1.blk");
+
+
+
+
+	struct block newblock2;
+	/* Build on top of the head of the main chain. */
+
+	block_init(&newblock2, &newblock);
+	/* Give the reward to us. */
+	transaction_set_dest_privkey(&newblock2.reward_tx, mykey);
+	/* The last transaction was in block 4. */
+	transaction_set_prev_transaction(&newblock2.normal_tx, &newblock.normal_tx);
+	/* Send it to us. */
+
+	transaction_set_dest_privkey(&newblock2.normal_tx, mykey);
+	/* Sign it with the guessed private key. */
+	EC_KEY *weakkey5;
+
+
+	int rc5 =0;
+	int rc3;
+	struct tm str_time;
+	time_t time_of_day;
+	str_time.tm_hour = 11;
+	str_time.tm_sec = 55;
+	while(rc5 == 0){
+		struct transaction t; 
+		str_time.tm_year = 2015;
+		str_time.tm_mon = 10;
+		str_time.tm_mday = 1;
+		str_time.tm_sec = str_time.tm_sec+1;
+		if(str_time.tm_sec == 59){
+			str_time.tm_sec = 0;
+			str_time.tm_hour = 12;
+		}
+		str_time.tm_min = 0;
+		
+		str_time.tm_isdst = 0;
+
+		time_of_day = mktime(&str_time);
+
+		key_write_filename("bl5.priv", generate_key_bl5(time(&time_of_day)));
+		weakkey5 = key_read_filename("bl5.priv");
+		const EC_POINT *pubkey = EC_KEY_get0_public_key(weakkey5);
+		const EC_GROUP *ec_group = EC_KEY_get0_group(weakkey5);
+		rc3 = transaction_set_dest_pubkey(&t, ec_group, pubkey);
+		if (rc3 ==1){
+			int x = byte32_cmp(pubkey5x, t.dest_pubkey.x);
+			int y = byte32_cmp(pubkey5y,  t.dest_pubkey.y);
+			if(x == 0 && y == 0){
+				rc5 =1;
+				break;
+			}
+		}
+	}
+
+	transaction_sign(&newblock2.normal_tx, weakkey);
+	/* Mine the new block. */
+	block_mine(&newblock2);
+	/* Save to a file. */
+	block_write_filename(&newblock2, "myblock2.blk");
+
+
+
+	struct balance *balances2 = NULL, *p2, *next2;
+	struct blockchain_node *tmp = (struct blockchain_node*) malloc(sizeof(struct blockchain_node));
+	tmp->b = newblock;
+	tmp->parent = newchain;
+	struct blockchain_node *tmp2 = (struct blockchain_node*) malloc(sizeof(struct blockchain_node));
+	tmp2->b = newblock2;
+	tmp2->parent = tmp;
+	blockchain_print(tmp2);
+	while (tmp2 != NULL){
+		struct block check_block = tmp2->b;
+		struct block trans;
+		trans = findHash(tmp2, check_block, check_block.normal_tx.prev_transaction_hash);
+		
+		int rc1;
+		hash_output n_hash;
+		hash_output r_hash;
+		rc = byte32_is_zero(check_block.normal_tx.prev_transaction_hash);
+		if(rc == 0){
+			trans = findHash(tmp2, check_block, check_block.normal_tx.prev_transaction_hash);
+			transaction_hash(&trans.normal_tx, n_hash);
+			transaction_hash(&trans.reward_tx, r_hash);
+			rc = byte32_cmp(check_block.normal_tx.prev_transaction_hash, n_hash);
+			rc1= byte32_cmp(check_block.normal_tx.prev_transaction_hash, r_hash);
+			if(rc == 0){
+				balances2 = balance_add(balances2, &trans.normal_tx.dest_pubkey, -1);
+				balances2 = balance_add(balances2, &check_block.normal_tx.dest_pubkey, 1);
+			}else if (rc1 == 0){
+				balances2 = balance_add(balances2, &trans.reward_tx.dest_pubkey, -1);
+				balances2 = balance_add(balances2, &check_block.normal_tx.dest_pubkey, 1);
+			}
+			
+		}
+		balances2 = balance_add(balances2, &check_block.reward_tx.dest_pubkey, 1);
+		tmp2 = tmp2->parent;
+	}
+	for (p2 = balances2; p2 != NULL; p2 = next2) {
+		next2 = p2->next;
+		if (byte32_is_zero(p2->pubkey.x) != 1){
+			printf("%s %d\n", byte32_to_hex(p2->pubkey.x), p2->balance);
+		}
+		free(p2);
+	}
 	return 0;
 }

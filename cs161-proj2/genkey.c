@@ -9,6 +9,10 @@
 /* Usage: genkey FILENAME
  * Generate a key and write it to the file FILENAME. */
 
+const unsigned char pubkey4[] = {
+	0xd8 ,0xa9, 0xb4, 0xc6, 0x03, 0x83, 0x3a, 0x85, 0x86, 0xc5, 0x38, 0x9e, 0x16, 0x7d, 0x25, 0xe9, 0xe5, 0xdd, 0x33, 
+	0xad, 0x3c, 0x2c, 0x95, 0xbe, 0x1c, 0x35, 0xc2, 0xdc, 0xde, 0xd6, 0x99, 0xb5
+};
 /* Interpret the 256 bits in buf as a private key and return an EC_KEY *. */
 static EC_KEY *generate_key_from_buffer(const unsigned char buf[32])
 {
@@ -43,6 +47,29 @@ err:
 	return NULL;
 }
 
+static EC_KEY *generate_key_bl4(void){
+
+	unsigned char buf[32];
+	int i;
+	srand(1234);
+	for (i = 0; i < 32; i++) {
+		buf[i] = rand() & 0xff;
+	}
+	byte32_to_hex(buf);
+	return generate_key_from_buffer(buf);
+}
+
+static EC_KEY *generate_key_bl5(void){
+
+	unsigned char buf[32];
+	int i;
+	srand(time(NULL));
+	for (i = 0; i < 32; i++) {
+		buf[i] = rand() & 0xff;
+	}
+	return generate_key_from_buffer(buf);
+}
+
 /* Generate a key using EC_KEY_generate_key. */
 static EC_KEY *generate_key(void)
 {
@@ -74,7 +101,8 @@ int main(int argc, char *argv[])
 
 	filename = argv[1];
 
-	key = generate_key();
+	key = generate_key_bl5();
+
 	if (key == NULL) {
 		fprintf(stderr, "error generating key\n");
 		exit(1);

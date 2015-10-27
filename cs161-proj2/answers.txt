@@ -1,0 +1,15 @@
+1. What is the current Bitcoin mining difficulty? (You can find it online at
+https://bitcoinwisdom.com/bitcoin/difficulty.)
+The current Bitcoin mining difficulty is 60,883,825,480. The next estimated difficutly is 63,413,802,702.
+
+
+2. How long does your computer take to mine a block? We don't need a precise answer.
+
+My computer takes about 30 seconds to 2 minutes to mine a block.
+
+
+3. The quantity difficulty×2^32 is the expected number of hash iterations needed to mine a Bitcoin block. How long would it take for your computer to mine a Bitcoin block, if a Bitcoin hash operation takes the same amount of time as a hash operation in your code for this project?
+
+
+
+4. The Bitcoin difficulty is dynamically tuned so that it takes on average 10 minutes to mine a block. A DES key is 56 bits long. How long does it take the current Bitcoin network to compute 2^56 hash operations?

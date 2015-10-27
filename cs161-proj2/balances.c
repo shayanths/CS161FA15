@@ -175,7 +175,6 @@ static struct balance *balance_add(struct balance *balances,
 	p->pubkey = *pubkey;
 	p->balance = amount;
 	p->next = balances;
-
 	return p;
 }
 
@@ -498,6 +497,7 @@ int main(int argc, char *argv[])
 			balances = balance_add(balances, &trans.normal_tx.dest_pubkey, -1);
 			balances = balance_add(balances, &check_block.normal_tx.dest_pubkey, 1);	
 		}
+		printf("%s\n", byte32_to_hex(&check_block.reward_tx.dest_pubkey.x));
 		balances = balance_add(balances, &check_block.reward_tx.dest_pubkey, 1);
 		best_blockchain = best_blockchain->parent;
 	}

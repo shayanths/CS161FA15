@@ -102,7 +102,6 @@ struct tree *createTree(struct block blocks[], int size, struct tree *root, int 
 {
 	int i;
 	int j;
-	
 	for (i = 0; i < size-1; i++){
 		for(j=i+1; j < size-1; j++){
 			if (blocks[j].height < blocks[i].height){
@@ -113,7 +112,6 @@ struct tree *createTree(struct block blocks[], int size, struct tree *root, int 
 			}
 		}
 	}
-
 	root = createNode(blocks[0]);
 	createTreeLevel(blocks, size, root);	
 	return root;
@@ -258,9 +256,6 @@ int isGenesis(struct block *b){
 }
 
 
-
-
-
 int main(int argc, char *argv[])
 {
 	int i;
@@ -281,25 +276,12 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "could not read %s\n", filename);
 			exit(1);
 		}
-		if (b.height == 0){
-			if (isGenesis(&b) == 1){
-				printf("yes is gen");
-				blocks[i-1] = b;
-			}
-		}else{
-			blocks[i-1] = b;
-		}
+		blocks[i-1] = b;
 		if (max_height < b.height){
 			max_height = b.height;
 		}	
 	}
 
-	
-	// Example on how to iterate through blockchain_node_list
-	for (i = 0; i < argc-1; i++){
-		printf("%d\n", blocks[i].height);
-	}
-	//Blocks should be sorted
 	struct tree *tree = (struct tree*) malloc(sizeof(struct tree));
 	tree = createTree(blocks, argc, tree, max_height);
 	preorder(tree);
@@ -312,6 +294,7 @@ int main(int argc, char *argv[])
 	/* For each path create a blockhain using blockchain_node struct (create function that takes list of blocks and makes blockchain?)*/
 	/* Append each blockchain to a list of blockchain*/
 	/* Then use  isValid each blockchain and choose the biggest valid chain*/ 
+
 	struct balance *balances = NULL, *p, *next;
 	/* Print out the list of balances. */
 	

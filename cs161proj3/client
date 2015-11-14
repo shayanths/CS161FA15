@@ -35,7 +35,34 @@ def connect(remote_address):
 def connect_with_socks(remote_address, socks_address):
     hostname, port = remote_address
     # TODO
-    raise NotImplementedError("connect_with_socks not implemented")
+    #First create a socket 
+    port_num = remote_address[1]
+    dom_name = bytearray(remote_address[0].encode())
+    dom_name += struct.pack('x')
+    usrID = bytearray(" ".encode())
+    usrID += struct.pack('x')
+    s = struct.pack('>bbhi', 4, 1, port_num, 1)
+    sock = bytearray(s)
+    sock+=(bytes(usrID))
+    sock+=(bytes(dom_name))
+    sock = bytes(sock)
+
+    #send sock with client_socket 
+    client_socket = socket.socket(socket.AF_INET)
+    client_socket.connect(socks_address)
+    client_socket.send(sock)
+
+    server_response = client_socket.recvfrom(4096)
+
+    server_response = struct.unpack('>8b', server_response[0])
+
+    #read the response if successful return client_socket else raise socket.error
+    #response_socket[1] should be 0x5a =90 if request granted
+    if (server_response[1] == 90):
+        return client_socket
+    else:
+
+        raise client_socket.error 
 
 # Parse command line options.
 opts, args = getopt.gnu_getopt(sys.argv[1:], "",

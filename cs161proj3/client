@@ -102,7 +102,7 @@ if options.use_tls:
     client_socket = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
     client_socket.verify_mode = ssl.CERT_REQUIRED
     client_socket.load_verify_locations(cafile=options.tls_trust_filename)
-    client_socket.wrap_socket(remote_socket, server_side=False, do_handshake_on_connect=True, suppress_ragged_eofs=True, server_hostname=remote_hostname)
+    client_socket = client_socket.wrap_socket(remote_socket, server_side=False, do_handshake_on_connect=True, suppress_ragged_eofs=True, server_hostname=remote_hostname)
     # raise NotImplementedError("TLS mode not implemented")
     remote_socket = client_socket
 # Unbuffer stdin, change to binary mode.

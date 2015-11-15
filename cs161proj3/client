@@ -55,7 +55,6 @@ def connect_with_socks(remote_address, socks_address):
     server_response = client_socket.recvfrom(4096)
 
     server_response = struct.unpack('>8b', server_response[0])
-    print(str(server_response))
 
     #read the response if successful return client_socket else raise socket.error
     #response_socket[1] should be 0x5a =90 if request granted
@@ -102,10 +101,10 @@ if options.use_tls:
     # to the remote_socket variable.
     client_socket = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
     client_socket.verify_mode = ssl.CERT_REQUIRED
-    client_socket.load_cert_chain(options.tls_trust_filename, keyfile=options.tls_trust_filename, password=None)
+    client_socket.load_verify_locations(cafile=options.tls_trust_filename)
     client_socket.wrap_socket(remote_socket, server_side=False, do_handshake_on_connect=True, suppress_ragged_eofs=True, server_hostname=remote_hostname)
     # raise NotImplementedError("TLS mode not implemented")
-
+    remote_socket = client_socket
 # Unbuffer stdin, change to binary mode.
 sys.stdin = os.fdopen(sys.stdin.fileno(), "rb", 0)
 # Change stdout to binary mode.

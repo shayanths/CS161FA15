@@ -63,7 +63,7 @@ def connect_with_socks(remote_address, socks_address):
         return client_socket
     else:
 
-        raise client_socket.error 
+        raise socket.error 
 
 # Parse command line options.
 opts, args = getopt.gnu_getopt(sys.argv[1:], "",
@@ -100,7 +100,11 @@ if options.use_tls:
     # TODO
     # Wrap remote_socket in TLS and assign the resulting socket.SSLSocket back
     # to the remote_socket variable.
-    raise NotImplementedError("TLS mode not implemented")
+    client_socket = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+    client_socket.verify_mode = ssl.CERT_REQUIRED
+    client_socket.load_cert_chain(options.tls_trust_filename, keyfile=options.tls_trust_filename, password=None)
+    client_socket.wrap_socket(remote_socket, server_side=False, do_handshake_on_connect=True, suppress_ragged_eofs=True, server_hostname=remote_hostname)
+    # raise NotImplementedError("TLS mode not implemented")
 
 # Unbuffer stdin, change to binary mode.
 sys.stdin = os.fdopen(sys.stdin.fileno(), "rb", 0)

@@ -57,20 +57,25 @@ if options.use_tls and (options.tls_cert_filename is None or options.tls_key_fil
     print("--tls-cert and --tls-key are required unless --disable-tls is used", file=sys.stderr)
     sys.exit(1)
 
-# Open the listening socket.
 listen_socket = socket.socket(socket.AF_INET)
+if options.use_tls:
+    try:
+        ssl_socket = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        ssl_socket.verify_mode = ssl.CERT_NONE
+        ssl_socket.load_cert_chain(options.tls_cert_filename, keyfile=options.tls_key_filename)
+        secured_socket = ssl_socket.wrap_socket(listen_socket, server_side=True)
+        listen_socket = secured_socket
+    except (ssl.SSLSyscallError):
+        print("Hello World! We have an error trying to wrap the socket with the given certificate and filename")
+
+# Open the listening socket.
+
 listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 listen_socket.bind((listen_hostname, listen_port))
 listen_socket.listen(0)
 
-if options.use_tls:
-    # TODO
-    # Wrap listen_socket in TLS and assign the resulting socket.SSLSocket back
-    # to the listen_socket variable.
-    raise NotImplementedError("TLS mode not implemented")
-
 while True:
-    # select.select will notify us which sockets are ready to read.
+    # select.select will notify us which sockets are ready to readyd.
     rset, _, _ = select.select([listen_socket] + list(CLIENT_SOCKETS), [], [])
     for s in rset:
         if s == listen_socket:
